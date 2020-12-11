@@ -15,13 +15,17 @@ is; no warranty is provided, and users accept all liability.
 #ifndef UCBUS_HEAD_H_
 #define UCBUS_HEAD_H_
 
+#include "ucbus-config.h"
+
+#ifdef UCBUS_IS_HEAD
+
 #include <arduino.h>
 
-#include "indicators.h"
-#include "../osape/utils/peripheral_nums.h"
-#include "../osape/utils/syserror.h"
-#include "../osape/utils/clocks_d51.h"
-#include "../osape/utils/cobs.h"
+#include "../../drivers/indicators.h"
+#include "../utils/peripheral_nums.h"
+#include "../utils/syserror.h"
+#include "../utils/clocks_d51.h"
+#include "../utils/cobs.h"
 
 #define TIMER_A_GCLK_NUM 9
 #define TIMER_B_GCLK_NUM 10
@@ -120,3 +124,4 @@ class UCBus_Head {
 extern UCBus_Head* ucBusHead;
 
 #endif
+#endif 

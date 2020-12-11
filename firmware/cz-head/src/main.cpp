@@ -9,7 +9,7 @@ OSAP* osap = new OSAP("cz head");
 VPort_USBSerial* vPortSerial = new VPort_USBSerial(); // 8 frames input, 1028 bytes each
 
 #include "osape/utils/clocks_d51.h"
-#include "drivers/ucbus_head.h"
+#include "osape/ucbus/ucbus_head.h"
 
 // should eventually just be this, 
 #include "smoothie/SmoothieRoll.h"

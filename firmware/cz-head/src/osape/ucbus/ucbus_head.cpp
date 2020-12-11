@@ -14,6 +14,8 @@ is; no warranty is provided, and users accept all liability.
 
 #include "ucbus_head.h"
 
+#ifdef UCBUS_IS_HEAD
+
 UCBus_Head* UCBus_Head::instance = 0;
 
 UCBus_Head* UCBus_Head::getInstance(void){
@@ -261,3 +263,4 @@ void UCBus_Head::transmit_b(uint8_t *data, uint16_t len){\
   outBufferBRp = 0;
 }
 
+#endif 
