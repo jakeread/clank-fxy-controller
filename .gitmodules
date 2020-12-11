@@ -1,0 +1,3 @@
+[submodule "firmware/cz-head/src/osape"]
+	path = firmware/cz-head/src/osape
+	url = ssh://git@gitlab.cba.mit.edu:846/jakeread/osape.git
