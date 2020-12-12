@@ -1,18 +1,18 @@
 #include <Arduino.h>
 
 #include "drivers/indicators.h"
-#include "osape/utils/cobs.h"
 #include "osape/osap/osap.h"
-
-OSAP* osap = new OSAP("cz head");
-#include "osape/osap/vport_usbserial.h"
-VPort_USBSerial* vPortSerial = new VPort_USBSerial(); // 8 frames input, 1028 bytes each
 
 #include "osape/utils/clocks_d51.h"
 #include "osape/ucbus/ucbus_head.h"
 
 // should eventually just be this, 
 #include "smoothie/SmoothieRoll.h"
+
+// osap 
+OSAP* osap = new OSAP("cz head");
+#include "osape/osap/vport_usbserial.h"
+VPort_USBSerial* vPortSerial = new VPort_USBSerial(); // 8 frames input, 1028 bytes each
 
 union chunk_float32 {
   uint8_t bytes[4];
@@ -38,6 +38,7 @@ uint16_t lastQueueSpaceTxd = 0;
 
 boolean needNewEmptySpaceReply = false;
 
+// these should be in the smoothieroll / module 
 boolean smoothie_is_queue_empty(void){
   return conveyor->queue.is_empty();
 }
@@ -226,12 +227,6 @@ void OSAP::handleAppPacket(uint8_t *pck, uint16_t pl, uint16_t ptr, uint16_t seg
   }
   // always do, 
   vp->clearPacket(pwp);
-  /*
-  uint16_t qs = conveyor->queue_space();
-  lastQueueSpaceTxd = qs;
-  ts_writeUint16(qs, reply, &rl);
-  // ship the reply   
-  */
 }
 
 void setup() {
@@ -252,9 +247,39 @@ void setup() {
   d51_clock_boss->start_ticker_a(10);
 }
 
-volatile uint8_t tick_count = 0;
+// runs as often as possible, 
 
-// TODO: this should be volatile, no? 
+uint16_t testCount = 0;
+uint8_t testPacket[8] = {1, 3, 5, 7, 9, 13, 17, 23};
+uint8_t testReturnPacket[64];
+
+void loop() {
+  //DEBUG2PIN_TOGGLE;
+  osap->loop();
+  conveyor->on_idle(nullptr);
+  // stepper-at-head spaces return 
+  if(needNewEmptySpaceReply && !(conveyor->is_queue_full())){
+    rl = 0;
+    reply[rl ++] = DK_APP;
+    reply[rl ++] = AK_GOTOPOS;
+    ts_writeBoolean(true, reply, &rl);
+    osap->appReply(replyBlankPck, replyBlankPl, replyBlankPtr, replyBlankSegsize, replyBlankVp, replyBlankVpi, reply, rl);
+    needNewEmptySpaceReply = false;
+  }
+  // test the bus, 
+  testCount ++;
+  if(testCount > 250){
+    testCount = 0;
+    if(ucBusHead->cts_b()) ucBusHead->transmit_b(testPacket, 2);
+  }
+  // receive the bus 
+  if(ucBusHead->ctr(12)){
+    size_t returnLen = ucBusHead->read(12, testReturnPacket);
+  }
+} // end loop 
+
+// runs on period defined by timer_a setup: 
+volatile uint8_t tick_count = 0;
 uint8_t motion_packet[64]; // three floats bb, space 
 
 void TC0_Handler(void){
@@ -280,116 +305,12 @@ void TC0_Handler(void){
     ts_writeFloat32(smoothieRoll->actuators[0]->floating_position, motion_packet, &mpptr);
     ts_writeFloat32(smoothieRoll->actuators[1]->floating_position, motion_packet, &mpptr);
     ts_writeFloat32(smoothieRoll->actuators[2]->floating_position, motion_packet, &mpptr);
+    // dummy E / L value, 
+    ts_writeFloat32(0.025, motion_packet, &mpptr);
     // write packet, put on ucbus
     //DEBUG3PIN_ON;
-    ucBusHead->transmit_a(motion_packet, 13);
+    ucBusHead->transmit_a(motion_packet, 17);
     //DEBUG3PIN_OFF;
   }
   DEBUG1PIN_OFF;
 }
-
-uint8_t testTxBytes[4] = {0, 2, 4, 8};
-uint8_t testTxLen = 4;
-
-uint8_t dropRead = 0;
-uint8_t testRxBytes[1024];
-uint16_t testRxLen = 0;
-
-uint64_t lastTransmit = 0;
-uint64_t lastRead = 0;
-
-uint16_t queueCheck = 0;
-
-uint32_t time = 0;
-uint32_t lastTime = 0;
-boolean once = true;
-
-#define SQUARE_SIDELEN 5.0F
-#define OFFSET 0.0F
-
-// dummy moves 
-uint8_t squareMove = 3;
-float square[4][3] = {
-  {0.0F + OFFSET, 0.0F + OFFSET, 0.0F + OFFSET},
-  {0.0F + OFFSET, SQUARE_SIDELEN + OFFSET, 0.0F + OFFSET},
-  {SQUARE_SIDELEN + OFFSET, SQUARE_SIDELEN + OFFSET, 0.0F + OFFSET},
-  {SQUARE_SIDELEN + OFFSET, 0.0F + OFFSET, 0.0F + OFFSET}
-};
-
-float spot = 1;
-float dummyTarget = 1;
-
-void loop() {
-  //DEBUG2PIN_TOGGLE;
-  osap->loop();
-  conveyor->on_idle(nullptr);
-  // return new info? 
-  // stepper-at-head spaces return 
-  if(needNewEmptySpaceReply && !(conveyor->is_queue_full())){
-    rl = 0;
-    reply[rl ++] = DK_APP;
-    reply[rl ++] = AK_GOTOPOS;
-    ts_writeBoolean(true, reply, &rl);
-    osap->appReply(replyBlankPck, replyBlankPl, replyBlankPtr, replyBlankSegsize, replyBlankVp, replyBlankVpi, reply, rl);
-    needNewEmptySpaceReply = false;
-  }
-  /*
-  queueCheck = conveyor->queue_space();
-  if(queueCheck > lastQueueSpaceTxd){
-    if(replyBlankPl > 0 && replyBlankVp->cts()){
-      rl = 0;
-      reply[rl ++] = DK_APP;
-      lastQueueSpaceTxd = queueCheck;
-      ts_writeUint16(lastQueueSpaceTxd, reply, &rl);
-      osap->appReply(replyBlankPck, replyBlankPl, replyBlankPtr, replyBlankSegsize, replyBlankVp, replyBlankVpi, reply, rl);
-    }
-  }
-  */
-
-  // for periodic debug,   
-  time = millis();
-  if(time > lastTime + 10){
-    lastTime = time;
-    //DEBUG3PIN_TOGGLE;
-    //DEBUG4PIN_TOGGLE;
-    if(!(conveyor->is_queue_full()) && false){  
-      //sysError("position: " + String(smoothieRoll->actuators[0]->floating_position) 
-      //                + " " + String(smoothieRoll->actuators[1]->floating_position));
-      squareMove ++;
-      if(squareMove > 3){
-        squareMove = 0;
-      }
-      //sysError("append: " + String(squareMove) + " " + String(square[squareMove][0]) + " " + String(square[squareMove][1]) + " " + String(square[squareMove][2]));
-      planner->append_move(square[squareMove], 3, 10);
-      // set flag for 'process immediate' 
-      // or run another line to remote-set the queue_delay_time_ms 
-      // conveyor::line 223 
-      /*
-      // thru append_move 
-      float dummyPos[3];
-      for(uint8_t m = 0; m < 3; m ++){
-        dummyPos[m] = dummyTarget;
-      }
-      dummyTarget += spot;
-      spot += 1;
-      if(spot > 5){
-        spot = 1;
-      }
-      planner->append_move(dummyPos, 3, 1);
-      */
-      /*
-      // thru append_block 
-      ActuatorCoordinates feedPos;
-      float sos = powf(spot, 2) * 3;
-      float dist = sqrtf(sos);
-      float unit[3] = {1 / dist, 1 / dist, 1 / dist};
-      float s_value = 10;
-      // step, 
-      for(uint8_t i = 0; i < k_max_actuators; i ++){
-        feedPos[i] = spot;
-      }
-      planner->append_block(feedPos, 3, 100, dist, unit, 10, s_value, true);
-      */
-    }
-  }
-} // end loop 
