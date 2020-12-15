@@ -12,7 +12,7 @@
 // osap 
 OSAP* osap = new OSAP("cz head");
 #include "osape/osap/vport_usbserial.h"
-VPort_USBSerial* vPortSerial = new VPort_USBSerial(); // 8 frames input, 1028 bytes each
+VPort_USBSerial* vPortSerial = new VPort_USBSerial(); 
 
 union chunk_float32 {
   uint8_t bytes[4];
@@ -50,6 +50,10 @@ boolean smoothie_is_moving(void){
         || !smoothie_is_queue_empty());
 }
 
+uint16_t testCount = 0;
+uint8_t testPacket[8] = {1, 3, 5, 7, 9, 13, 17, 23};
+uint8_t testReturnPacket[1024];
+
 // pck[ptr] == DK_APP
 void OSAP::handleAppPacket(uint8_t *pck, uint16_t pl, uint16_t ptr, uint16_t segsize, VPort* vp, uint16_t vpi, uint8_t pwp){
   // track end of header, to reply with 
@@ -71,6 +75,15 @@ void OSAP::handleAppPacket(uint8_t *pck, uint16_t pl, uint16_t ptr, uint16_t seg
   // do the reading:
   ptr ++; // walk appcode DK_APP
   switch(pck[ptr]){
+    case AK_BUSECHO: { // debug bus forward 
+        if(ucBusHead->cts_b()){
+          sysError("transmit " + String(pl-ptr-1));
+          ucBusHead->transmit_b(&(pck[ptr + 1]), pl - ptr - 1);
+        } else {
+          sysError("bus not cts");
+        }
+      }
+      break;
     case AK_GOTOPOS: {
         ptr ++; // walk mocode 
         reply[rl ++] = AK_GOTOPOS;
@@ -249,10 +262,6 @@ void setup() {
 
 // runs as often as possible, 
 
-uint16_t testCount = 0;
-uint8_t testPacket[8] = {1, 3, 5, 7, 9, 13, 17, 23};
-uint8_t testReturnPacket[64];
-
 void loop() {
   //DEBUG2PIN_TOGGLE;
   osap->loop();
@@ -263,18 +272,30 @@ void loop() {
     reply[rl ++] = DK_APP;
     reply[rl ++] = AK_GOTOPOS;
     ts_writeBoolean(true, reply, &rl);
-    osap->appReply(replyBlankPck, replyBlankPl, replyBlankPtr, replyBlankSegsize, replyBlankVp, replyBlankVpi, reply, rl);
+    osap->appReply(replyBlankPck, replyBlankPl, replyBlankPtr, replyBlankSegsize,
+     replyBlankVp, replyBlankVpi, reply, rl);
     needNewEmptySpaceReply = false;
   }
   // test the bus, 
+  /*
   testCount ++;
   if(testCount > 250){
     testCount = 0;
     if(ucBusHead->cts_b()) ucBusHead->transmit_b(testPacket, 2);
   }
+  */
   // receive the bus 
   if(ucBusHead->ctr(12)){
     size_t returnLen = ucBusHead->read(12, testReturnPacket);
+    sysError("return " + String(returnLen));
+    rl = 0;
+    reply[rl ++] = DK_APP;
+    reply[rl ++] = AK_BUSECHO;
+    for(uint8_t i = 0; i < returnLen; i ++){
+      reply[rl ++] = testReturnPacket[i];
+    }
+    osap->appReply(replyBlankPck, replyBlankPl, replyBlankPtr, replyBlankSegsize,
+     replyBlankVp, replyBlankVpi, reply, rl);
   }
 } // end loop 
 
