@@ -76,9 +76,9 @@ void OSAP::handleAppPacket(uint8_t *pck, uint16_t pl, uint16_t ptr, uint16_t seg
   ptr ++; // walk appcode DK_APP
   switch(pck[ptr]){
     case AK_BUSECHO: { // debug bus forward 
-        if(ucBusHead->cts_b()){
+        if(ucBusHead->cts_b(12)){
           sysError("transmit " + String(pl-ptr-1));
-          ucBusHead->transmit_b(&(pck[ptr + 1]), pl - ptr - 1);
+          ucBusHead->transmit_b(&(pck[ptr + 1]), pl - ptr - 1, 12);
         } else {
           sysError("bus not cts");
         }
@@ -130,7 +130,7 @@ void OSAP::handleAppPacket(uint8_t *pck, uint16_t pl, uint16_t ptr, uint16_t seg
         ts_writeString("motion is happening, cannot set position on the fly", reply, &rl);
       } else {
         // will require that you operate a new bus command. 
-        if(ucBusHead->cts_b() && !smoothie_is_moving()){
+        if(ucBusHead->cts_b(12) && !smoothie_is_moving()){
           ptr ++;
           // same as currents, we can forward these posns', 
           //ucBusHead->transmit_b(&(pck[ptr]), 13);
@@ -182,11 +182,11 @@ void OSAP::handleAppPacket(uint8_t *pck, uint16_t pl, uint16_t ptr, uint16_t seg
       // should be able to put a new current-write out on the B channel,
       // so long as it's clear 
       reply[rl ++] = AK_SETCURRENT;
-      if(ucBusHead->cts_b()){
+      if(ucBusHead->cts_b(12)){
         // this is basically a forward, or should be, 
         // pck[ptr] == AK_SETCURRENT, + 3*4 wide floats
         // we can actually do this direct from pck -> bus outbuffer 
-        ucBusHead->transmit_b(&(pck[ptr]), 13);
+        ucBusHead->transmit_b(&(pck[ptr]), 13, 12);
         reply[rl ++] = AK_OK;
       } else {
         reply[rl ++] = AK_ERR;
@@ -196,8 +196,8 @@ void OSAP::handleAppPacket(uint8_t *pck, uint16_t pl, uint16_t ptr, uint16_t seg
     case AK_SETRPM:
       // spindle rpm change 
       reply[rl ++] = AK_SETRPM;
-      if(ucBusHead->cts_b()){ // this is aaaaahn float, or uint32, either way: 
-        ucBusHead->transmit_b(&(pck[ptr]), 5);
+      if(ucBusHead->cts_b(12)){ // this is aaaaahn float, or uint32, either way: 
+        ucBusHead->transmit_b(&(pck[ptr]), 5, 12);
         reply[rl ++] = AK_OK;
       } else {
         reply[rl ++] = AK_ERR;
@@ -207,8 +207,8 @@ void OSAP::handleAppPacket(uint8_t *pck, uint16_t pl, uint16_t ptr, uint16_t seg
     case AK_SET_TC: 
       // set motor torque downstream 
       reply[rl ++] = AK_SET_TC;
-      if(ucBusHead->cts_b()){ // this is aaaaahn float, or uint32, either way: 
-        ucBusHead->transmit_b(&(pck[ptr]), 5);
+      if(ucBusHead->cts_b(12)){ // this is aaaaahn float, or uint32, either way: 
+        ucBusHead->transmit_b(&(pck[ptr]), 5, 12);
         reply[rl ++] = AK_OK;
       } else {
         reply[rl ++] = AK_ERR;
@@ -218,8 +218,8 @@ void OSAP::handleAppPacket(uint8_t *pck, uint16_t pl, uint16_t ptr, uint16_t seg
     case AK_RUNCALIB:
       // set motor torque downstream 
       reply[rl ++] = AK_RUNCALIB;
-      if(ucBusHead->cts_b()){ // this is aaaaahn float, or uint32, either way: 
-        ucBusHead->transmit_b(&(pck[ptr]), 5);
+      if(ucBusHead->cts_b(12)){ // this is aaaaahn float, or uint32, either way: 
+        ucBusHead->transmit_b(&(pck[ptr]), 5, 12);
         reply[rl ++] = AK_OK;
       } else {
         reply[rl ++] = AK_ERR;
@@ -276,14 +276,6 @@ void loop() {
      replyBlankVp, replyBlankVpi, reply, rl);
     needNewEmptySpaceReply = false;
   }
-  // test the bus, 
-  /*
-  testCount ++;
-  if(testCount > 250){
-    testCount = 0;
-    if(ucBusHead->cts_b()) ucBusHead->transmit_b(testPacket, 2);
-  }
-  */
   // receive the bus 
   if(ucBusHead->ctr(12)){
     size_t returnLen = ucBusHead->read(12, testReturnPacket);
