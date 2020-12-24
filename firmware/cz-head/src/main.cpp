@@ -57,49 +57,19 @@ uint8_t testPacket[8] = {1, 3, 5, 7, 9, 13, 17, 23};
 uint8_t testReturnPacket[1024];
 
 // pck[ptr] == DK_APP
-void OSAP::handleAppPacket(uint8_t *pck, uint16_t pl, uint16_t ptr, uint16_t segsize, VPort* vp, uint16_t vpi, uint8_t pwp){
-  // track end of header, to reply with 
-  uint16_t replyPtr = ptr;
-  // (a hack) store one app packet, to format our replies with. do once 
-  if(replyBlankPtr == 0){
-    for(uint16_t i = 0; i < pl; i++){
-      replyBlankPck[i] = pck[i];
-    }
-    replyBlankPl = pl;
-    replyBlankPtr = ptr;
-    replyBlankSegsize = segsize;
-    replyBlankVp = vp;
-    replyBlankVpi = vpi;
-  }
+void OSAP::handleAppPacket(uint8_t *pck, uint16_t ptr, pckm_t* pckm){
   // clear out our reply,   
   rl = 0;
-  reply[rl ++] = DK_APP;
   // do the reading:
   ptr ++; // walk appcode DK_APP
   switch(pck[ptr]){
-    case AK_BUSECHO: { // debug bus forward 
-        if(ucBusHead->cts_b(12)){
-          sysError("transmit " + String(pl-ptr-1));
-          ucBusHead->transmit_b(&(pck[ptr + 1]), pl - ptr - 1, 12);
-        } else {
-          sysError("bus not cts");
-        }
-      }
-      break;
     default:
       sysError("nonreq. appkey " + String(pck[ptr]));
       break;
   }// end pck ptr switch 
   // check if should issue reply 
-  if(rl > 1){
-    if(vp->cts()){
-      appReply(pck, pl, replyPtr, segsize, vp, vpi, reply, rl);
-    } else {
-      sysError("on reply, not cts, system fails");
-    }
-  }
   // always do, 
-  vp->clear(pwp);
+  pckm->vpa->clear(pckm->location);
 }
 
 void setup() {
@@ -125,19 +95,14 @@ void loop() {
   //DEBUG2PIN_TOGGLE;
   osap->loop();
   conveyor->on_idle(nullptr);
+  delay(10);
   // receive the bus 
+  /*
   if(ucBusHead->ctr(12)){
     size_t returnLen = ucBusHead->read(12, testReturnPacket);
-    sysError("return " + String(returnLen));
-    rl = 0;
-    reply[rl ++] = DK_APP;
-    reply[rl ++] = AK_BUSECHO;
-    for(uint8_t i = 0; i < returnLen; i ++){
-      reply[rl ++] = testReturnPacket[i];
-    }
-    osap->appReply(replyBlankPck, replyBlankPl, replyBlankPtr, replyBlankSegsize,
-     replyBlankVp, replyBlankVpi, reply, rl);
+    sysError("bus head reads from 12:  " + String(returnLen));
   }
+  */
 } // end loop 
 
 // runs on period defined by timer_a setup: 
