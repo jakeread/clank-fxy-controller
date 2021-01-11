@@ -1,3 +1,14 @@
+## Known Issues
+
+- notes in 'virtualMachine.js' on promise timeouts 
+- try i.e. sending a 'setcurrent' command while motion is ongoing... seems like some hangup is going on, but should be able to parallelize those 
+- the PWM/5V/GND label on the esc board is backwards 
+- setcurrent & other (?) ucbus chb transmissions appear to drop the last byte, or something like this - so i.e. remote z current resetting doesn't work 
+
+## 2021 01 11
+
+Starting to re-assemble this today w/ osap data endpoints / objects. 
+
 ## 2020 11 11
 
 Mostly, the delta here will be for toolchanging. Still leaning on GCode as a high level input.
