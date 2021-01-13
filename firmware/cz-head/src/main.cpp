@@ -72,6 +72,16 @@ void OSAP::handleAppPacket(uint8_t *pck, uint16_t ptr, pckm_t* pckm){
   pckm->vpa->clear(pckm->location);
 }
 
+// -------------------------------------------------------- OSAP ENDPOINTS
+
+boolean onMoveEPData(uint8_t* data, uint16_t len){
+  // fn declare, if handlers return true: clear, else, await 
+  return true;
+}
+
+Endpoint* moveEP = osap->endpoint(onMoveEPData);
+
+
 void setup() {
   ERRLIGHT_SETUP;
   CLKLIGHT_SETUP;
@@ -89,21 +99,27 @@ void setup() {
   d51_clock_boss->start_ticker_a(10);
 }
 
-// runs as often as possible, 
-
 void loop() {
   //DEBUG2PIN_TOGGLE;
   osap->loop();
   conveyor->on_idle(nullptr);
-  delay(10);
-  // receive the bus 
-  /*
-  if(ucBusHead->ctr(12)){
-    size_t returnLen = ucBusHead->read(12, testReturnPacket);
-    sysError("bus head reads from 12:  " + String(returnLen));
-  }
-  */
 } // end loop 
+
+/*
+ERRLIGHT_TOGGLE;
+uint16_t wptr = 0;
+txpck[wptr ++] = DK_VMODULE;
+ts_writeUint16(0, txpck, &wptr);    // from the 0th software module at this node, 
+ts_writeUint16(0, txpck, &wptr);    // and the 0th data object there
+ts_writeUint16(0, txpck, &wptr);    // to the 0th software module at end of route, 
+ts_writeUint16(0, txpck, &wptr);    // and the 0th data object there 
+// type it, and write it 
+txpck[wptr ++] = TK_UINT32;
+float reading = readThermA(); // PA04 is our THERM_A, analog pin 4 in arduino land 
+ts_writeFloat32(reading, txpck, &wptr);
+// transmit, 
+osap->send(txroute, 11, 512, txpck, wptr);
+*/
 
 // runs on period defined by timer_a setup: 
 volatile uint8_t tick_count = 0;

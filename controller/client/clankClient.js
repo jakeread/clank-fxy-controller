@@ -1,7 +1,7 @@
 /*
-osapc.js
+clank-client.js
 
-osap tool client side
+clank controller client side
 
 Jake Read at the Center for Bits and Atoms
 (c) Massachusetts Institute of Technology 2020
@@ -14,27 +14,33 @@ no warranty is provided, and users accept all liability.
 
 'use strict'
 
-import OSAP from '../core/osap.js'
-import { Input, Output } from '../core/modules.js'
-import GRIDSQUID from './drawing/gridsquid.js'
-import VirtualMachine from './virtualMachine.js'
+import OSAP from '../osapjs/core/osap.js'
+import { TS, PK, DK, AK, EP } from '../osapjs/core/ts.js'
+import NetRunner from '../osapjs/client/netrunner/osap-render.js'
 
-import { TS, PK, DK, AK, EP } from '../core/ts.js'
+// the clank 'virtual machine'
+import ClankVM from './clankVirtualMachine.js'
 
-import { GCodePanel, Button, TextInput, JogBox } from './gCodePanel.js'
-import Pad from './pad.js'
+// sort of stand-alone prototype input / output system for JS... it doth not network
+import { Input, Output } from '../osapjs/core/modules.js'
 
-console.log("hello-osap-tools")
+import { GCodePanel } from '../osapjs/client/components/gCodePanel.js'
+import { AutoPlot } from '../osapjs/client/components/autoPlot.js'
+import { Button } from '../osapjs/client/interface/button.js'
+
+console.log("hello clank controller")
 
 // an instance of some osap capable thing (the virtual object)
 // that will appear on the network, be virtually addressable
 let osap = new OSAP()
-osap.name = "client"
-osap.description = "browser OSAP interface"
+osap.name = "clank client"
+osap.description = "clank cz browser interface"
 
-// draws network config, draws plane, etc 
-// position args are for where-to-draw config tree 
-let gs = new GRIDSQUID(osap, 10, 900)
+// draws network, 
+let netrunner = new NetRunner(osap, 20, 400, false)
+
+// vm, 
+let vm = new ClankVM(osap)
 
 // panel, 
 let gCodePanel = new GCodePanel(10, 10)
@@ -42,16 +48,15 @@ let gCodePanel = new GCodePanel(10, 10)
 // pipe moves 2 machine 
 let moveInput = new Input()
 gCodePanel.moveOut.attach(moveInput)
-moveInput.addListener(async (move) => {
+moveInput.addListener((move) => {
   return new Promise((resolve, reject) => {
     vm.addMoveToQueue(move).then(() => {
       resolve()
-    }).catch((err) => {
-      console.error(err)
-      reject(err)
-    })
+    }).catch((err) => { reject(err) })
   })
 })
+
+/*
 
 // connect awaitMotionEnd() to gcode parser 
 
@@ -343,10 +348,15 @@ let jogBox = new JogBox(670, 10, vm)
 // render 
 let pad = new Pad(240, 160, 610, 610)
 
+*/
+
 // -------------------------------------------------------- STARTUP LOCAL
 
 let wscVPort = osap.vPort()
 wscVPort.name = 'websocket client'
+wscVPort.maxSegLength = 1024
+
+let LOGPHY = false
 
 // to test these systems, the client (us) will kickstart a new process
 // on the server, and try to establish connection to it.
@@ -357,38 +367,41 @@ console.log("and connecting to it w/ new websocket")
 // then we can start a websocket client to connect there,
 // automated remote-proc. w/ vPort & wss medium,
 // for args, do '/processName.js?args=arg1,arg2'
-let LOGPHY = false
+
 jQuery.get('/startLocal/osapl-usb-bridge.js', (res) => {
   if (res.includes('OSAP-wss-addr:')) {
     let addr = res.substring(res.indexOf(':') + 2)
     if (addr.includes('ws://')) {
+      let status = EP.PORTSTATUS.OPENING
+      wscVPort.status = () => { return status }
       console.log('starting socket to remote at', addr)
-      wscVPort.phy.status = EP.PORTSTATUS.OPENING
       let ws = new WebSocket(addr)
-      wscVPort.phy.maxSegLength = 1024
+      // opens, 
       ws.onopen = (evt) => {
-        wscVPort.setPortOpen()
-        wscVPort.phy.send = (buffer) => {
-          if (LOGPHY) console.log('PHY WSC Send', buffer)
-          ws.send(buffer)
-        }
+        status = EP.PORTSTATUS.OPEN
+        // implement rx
         ws.onmessage = (msg) => {
           msg.data.arrayBuffer().then((buffer) => {
             let uint = new Uint8Array(buffer)
             if (LOGPHY) console.log('PHY WSC Recv')
             if (LOGPHY) TS.logPacket(uint)
-            wscVPort.phy.receive(uint)
+            wscVPort.receive(uint)
           }).catch((err) => {
             console.error(err)
           })
         }
+        // implement tx 
+        wscVPort.send = (buffer) => {
+          if (LOGPHY) console.log('PHY WSC Send', buffer)
+          ws.send(buffer)
+        }
       }
       ws.onerror = (err) => {
-        wscVPort.phy.status = EP.PORTSTATUS.CLOSED
+        status = EP.PORTSTATUS.CLOSED
         console.log('sckt err', err)
       }
       ws.onclose = (evt) => {
-        wscVPort.phy.status = EP.PORTSTATUS.CLOSED
+        status = EP.PORTSTATUS.CLOSED
         console.log('sckt closed', evt)
       }
     }
@@ -397,53 +410,3 @@ jQuery.get('/startLocal/osapl-usb-bridge.js', (res) => {
   }
 })
 
-// -------------------------------------------------------- KEYS 
-
-let ctrlDown = false
-
-document.addEventListener('keydown', (evt) => {
-  if (evt.keyCode == 17) ctrlDown = true
-  if (!ctrlDown) return
-  console.log(`keycode ${evt.keyCode}`)
-  switch (evt.keyCode) {
-    case 9: // 'tab' - BREAKS the interface, catch and rm 
-      evt.preventDefault()
-      evt.stopPropagation()
-      return
-    case 69: // 'e'
-      osap.ping(twoHop).then((res) => {
-        console.warn('PING', res)
-      }).catch((err) => {
-        console.error(err)
-      })
-      break;
-    case 81: // 'q'
-      if (pQueryTimer) {
-        clearTimeout(pQueryTimer)
-      } else {
-        positionQuery()
-      }
-      break;
-    case 82: // 'r'
-      osap.ping(twoHop).then((res) => {
-        osap.query(twoHop, 'name', 'description', 'numVPorts').then((resp) => {
-          console.warn(resp)
-        }).catch((err) => {
-          console.error(err)
-        })
-      }).catch((err) => {
-        console.error(err)
-      })
-      break;
-    case 80: // 'p'
-      //pollControl.setValue(!ctrl.polling)
-      break;
-    case 83: // 's'
-      // sweep... now bottled in GS 
-      break;
-  }
-})
-
-document.addEventListener('keyup', (evt) => {
-  if (evt.keyCode == 17) ctrlDown = false
-})

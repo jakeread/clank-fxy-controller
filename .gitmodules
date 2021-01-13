@@ -1,3 +1,6 @@
 [submodule "firmware/cz-head/src/osape"]
 	path = firmware/cz-head/src/osape
 	url = ssh://git@gitlab.cba.mit.edu:846/jakeread/osape.git
+[submodule "controller/osapjs"]
+	path = controller/osapjs
+	url = ssh://git@gitlab.cba.mit.edu:846/jakeread/osapjs.git
