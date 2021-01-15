@@ -56,6 +56,50 @@ moveInput.addListener((move) => {
   })
 })
 
+let ep = osap.endpoint()
+ep.addRoute(TS.route().portf(0).portf(1).end(), TS.endpoint(0,0), 512)
+
+let epTestBtn = new Button(240, 10, 94, 14, 'ep test')
+epTestBtn.onClick(() => {
+  testRun().then((res) => {
+    let avg = 0 
+    for(let i = 0; i < res.length; i ++){
+      avg += res[i]
+    }
+    avg /= 1000
+    console.warn(avg)
+    epTestBtn.good(`avg ${avg}`, 500)
+  })
+  /*
+  let datagram = Uint8Array.from([12, 24, 36])
+  console.warn('begin')
+  let start = performance.now()
+  ep.write(datagram).then(() => {
+    console.log(performance.now() - start)
+    console.warn('end')
+    epTestBtn.good("resolves")
+    console.warn('RESOLVE EP WRITE')
+  }).catch((err) => {
+    epTestBtn.bad("rejects")
+    console.error('EP REJECT')
+    console.error(err)
+  })
+  */
+})
+
+let testRun = async () => {
+  let datagram = Uint8Array.from([12, 24, 36])
+  let start = performance.now()
+  let times = []
+  for(let i = 0; i < 1000; i ++){
+    await ep.write(datagram)
+    let now = performance.now()
+    times.push(now - start)
+    start = now 
+  }
+  return times
+}
+
 /*
 
 // connect awaitMotionEnd() to gcode parser 

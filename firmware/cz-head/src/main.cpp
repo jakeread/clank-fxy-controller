@@ -75,8 +75,34 @@ void OSAP::handleAppPacket(uint8_t *pck, uint16_t ptr, pckm_t* pckm){
 // -------------------------------------------------------- OSAP ENDPOINTS
 
 boolean onMoveEPData(uint8_t* data, uint16_t len){
-  // fn declare, if handlers return true: clear, else, await 
+  // test test, 
   return true;
+  /*
+  // can we load it?
+  if(!conveyor->is_queue_full()){
+    // get positions 
+    uint16_t ptr = 0;
+    chunk_float32 targetChunks[3];
+    targetChunks[0] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+    targetChunks[1] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+    targetChunks[2] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+    // get feed 
+    chunk_float32 feedrateChunk = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+    if(feedrateChunk.f < 0.01){
+      sysError("ZERO FR");
+      return true; // ignore this & ack 
+    } else {
+      // do load 
+      float target[3] = {targetChunks[0].f, targetChunks[1].f, targetChunks[2].f};
+      //sysError("targets, rate: " + String(target[0], 6) + ", " + String(target[1], 6) + ", " + String(target[2], 6) + ", " + String(feedrateChunk.f, 6));
+      planner->append_move(target, 3, feedrateChunk.f);
+      return true; 
+    }
+  } else {
+    // await, try again next loop 
+    return false;
+  }
+  */
 }
 
 Endpoint* moveEP = osap->endpoint(onMoveEPData);
@@ -155,3 +181,148 @@ void TC0_Handler(void){
     //DEBUG3PIN_OFF;
   }
 }
+
+/*
+case AK_GOTOPOS: {
+        ptr ++; // walk mocode 
+        reply[rl ++] = AK_GOTOPOS;
+        // get positions 
+        chunk_float32 targetChunks[3];
+        targetChunks[0] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+        targetChunks[1] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+        targetChunks[2] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+        // get feed 
+        chunk_float32 feedrateChunk = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+        if(feedrateChunk.f < 0.01){
+          sysError("ZERO FR");
+        }
+        // can load move? 
+        if(!(conveyor->is_queue_full())){
+          // do load 
+          // need to get last position from each, to do increment calc for planner 
+          // that can all go in the planner, 
+          float target[3] = {targetChunks[0].f, targetChunks[1].f, targetChunks[2].f};
+          //sysError("targets, rate: " + String(target[0], 6) + ", " + String(target[1], 6) + ", " + String(target[2], 6) + ", " + String(feedrateChunk.f, 6));
+          planner->append_move(target, 3, feedrateChunk.f);
+        } else {
+          // if we flowcontrol properly, this shouldn't appear 
+          sysError("WRITE FULL");
+        }
+        // reply if not full after push, 
+        if(conveyor->is_queue_full()){
+          // full, 
+          needNewEmptySpaceReply = true;
+        } else {
+          ts_writeBoolean(true, reply, &rl);
+        }
+      }
+      break;
+    case AK_SETPOS:
+      // only when queue empty and not moving, set current position 
+      reply[rl ++] = AK_SETPOS;
+      // these are cancelled for now ... or ? are they ?
+      if(false){
+        reply[rl ++] = AK_ERR;
+        ts_writeString("setPos remote is cancelled, use deltas from query'd position", reply, &rl);
+      } else if(smoothie_is_moving()){
+        reply[rl ++] = AK_ERR;
+        ts_writeString("motion is happening, cannot set position on the fly", reply, &rl);
+      } else {
+        // will require that you operate a new bus command. 
+        if(ucBusHead->cts_b(12) && !smoothie_is_moving()){
+          ptr ++;
+          // same as currents, we can forward these posns', 
+          //ucBusHead->transmit_b(&(data[ptr]), 13);
+          // but also need to set our own position to this... 
+          chunk_float32 setChunks[3];
+          setChunks[0] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+          setChunks[1] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+          setChunks[2] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+          // meaning...
+          // I'm not 100% on this code, will ofc test when homing is tested 
+          float set[3] = {setChunks[0].f, setChunks[1].f, setChunks[2].f};
+          planner->set_position(set, 3);
+          sysError("SET: " + String(setChunks[0].f, 3) + " " + String(setChunks[1].f, 3) + " " + String(setChunks[2].f, 3));
+          // and reply OK 
+          reply[rl ++] = AK_OK;
+        }
+      }
+      break;
+    case AK_SETWAITTIME:{
+        reply[rl ++] = AK_SETWAITTIME;
+        ptr ++;
+        chunk_uint32 setChunk = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+        conveyor->setWaitTime(setChunk.u);
+        break;
+      }
+    case AK_QUERYMOVING:
+      // is currently ticking?
+      reply[rl ++] = AK_QUERYMOVING;
+      if(smoothieRoll->actuators[0]->is_moving() || smoothieRoll->actuators[1]->is_moving() || smoothieRoll->actuators[2]->is_moving()){
+        ts_writeBoolean(true, reply, &rl);
+      } else {
+        ts_writeBoolean(false, reply, &rl);
+      }
+      break;
+    case AK_QUERYPOS:
+      reply[rl ++] = AK_QUERYPOS;
+      ts_writeFloat32(smoothieRoll->actuators[0]->floating_position, reply, &rl);
+      ts_writeFloat32(smoothieRoll->actuators[1]->floating_position, reply, &rl);
+      ts_writeFloat32(smoothieRoll->actuators[2]->floating_position, reply, &rl);
+    case AK_QUERYQUEUELEN: {
+        reply[rl ++] = AK_QUERYQUEUELEN;
+        // length of queue is 64 - available space 
+        uint16_t ql = 64 - conveyor->queue_space(); 
+        ts_writeUint16(ql, reply, &rl);
+      }
+      break;
+    // downstream / bus... 
+    case AK_SETCURRENT:
+      // should be able to put a new current-write out on the B channel,
+      // so long as it's clear 
+      reply[rl ++] = AK_SETCURRENT;
+      if(ucBusHead->cts_b(12)){
+        // this is basically a forward, or should be, 
+        // data[ptr] == AK_SETCURRENT, + 3*4 wide floats
+        // we can actually do this direct from pck -> bus outbuffer 
+        ucBusHead->transmit_b(&(data[ptr]), 13, 12);
+        reply[rl ++] = AK_OK;
+      } else {
+        reply[rl ++] = AK_ERR;
+        ts_writeString("ucbus b-channel not clear, cannot write currents", reply, &rl);
+      }
+      break;
+    case AK_SETRPM:
+      // spindle rpm change 
+      reply[rl ++] = AK_SETRPM;
+      if(ucBusHead->cts_b(12)){ // this is aaaaahn float, or uint32, either way: 
+        ucBusHead->transmit_b(&(data[ptr]), 5, 12);
+        reply[rl ++] = AK_OK;
+      } else {
+        reply[rl ++] = AK_ERR;
+        ts_writeString("ucbus b-channel not clear, cannot write rpm", reply, &rl);
+      }
+      break;
+    case AK_SET_TC: 
+      // set motor torque downstream 
+      reply[rl ++] = AK_SET_TC;
+      if(ucBusHead->cts_b(12)){ // this is aaaaahn float, or uint32, either way: 
+        ucBusHead->transmit_b(&(data[ptr]), 5, 12);
+        reply[rl ++] = AK_OK;
+      } else {
+        reply[rl ++] = AK_ERR;
+        ts_writeString("ucbus b-channel not clear, cannot write rpm", reply, &rl);
+      }
+      break;
+    case AK_RUNCALIB:
+      // set motor torque downstream 
+      reply[rl ++] = AK_RUNCALIB;
+      if(ucBusHead->cts_b(12)){ // this is aaaaahn float, or uint32, either way: 
+        ucBusHead->transmit_b(&(data[ptr]), 5, 12);
+        reply[rl ++] = AK_OK;
+      } else {
+        reply[rl ++] = AK_ERR;
+        ts_writeString("ucbus b-channel not clear, cannot write rpm", reply, &rl);
+      }
+      break;
+*/

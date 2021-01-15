@@ -16,10 +16,11 @@ import { TS, PK, DK, AK, EP } from '../osapjs/core/ts.js'
 
 export default function ClankVM(osap, route) {
 
+  /*
   // ok: we make an 'endpoint' that will transmit moves,
   let moveEP = osap.endpoint()
   // add the machine head's route to it, 
-  moveEP.addRoute(`route`)
+  moveEP.addRoute(TS.route().portf(0).portf(0).endpoint(0,0).end(), 512)
 
   // move like: { position: {X: num, Y: num, Z: num}, rate: num }
   this.addMoveToQueue = (move) => {
@@ -48,5 +49,6 @@ export default function ClankVM(osap, route) {
       check()
     })
   }
+  */
   
 }
