@@ -5,6 +5,17 @@
 - the PWM/5V/GND label on the esc board is backwards 
 - setcurrent & other (?) ucbus chb transmissions appear to drop the last byte, or something like this - so i.e. remote z current resetting doesn't work 
 
+### Clank CZ New Controller 
+
+- change gcode parsing system: maybe delete these js modules, instead do direct vm call / which returns the osap.write() ? or so, idk how you want to do this 
+- gcode delivery: need to change the timeout scale here to await those long acks for potentially lengthy gcodes... 
+
+## 2021 01 15
+
+OK, finally through this osap rollup of endpoints - these are the 'source addressed' data objects (i.e. inputs and outputs) that I'd like to use to (re)build this virtual machine with now. 
+
+So - first struggle - if the gcode parser times out, it throws an error, and that should halt the delivery of new codes. But that's fine. 
+
 ## 2020 11 11
 
 Mostly, the delta here will be for toolchanging. Still leaning on GCode as a high level input.

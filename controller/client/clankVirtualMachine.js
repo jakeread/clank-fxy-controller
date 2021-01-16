@@ -15,12 +15,10 @@ no warranty is provided, and users accept all liability.
 import { TS, PK, DK, AK, EP } from '../osapjs/core/ts.js'
 
 export default function ClankVM(osap, route) {
-
-  /*
   // ok: we make an 'endpoint' that will transmit moves,
   let moveEP = osap.endpoint()
   // add the machine head's route to it, 
-  moveEP.addRoute(TS.route().portf(0).portf(0).endpoint(0,0).end(), 512)
+  moveEP.addRoute(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 1), 512)
 
   // move like: { position: {X: num, Y: num, Z: num}, rate: num }
   this.addMoveToQueue = (move) => {
@@ -35,20 +33,12 @@ export default function ClankVM(osap, route) {
     wptr += TS.write('float32', move.rate, datagram, wptr, true)
     // do the networking, 
     return new Promise((resolve, reject) => {
-      let check = () => {
-        if (moveEP.cts()) {
-          moveEP.write(datagram).then(() => {
-            resolve()
-          }).catch((err) => {
-            reject(err)
-          })
-        } else {
-          setTimeout(check, 10)
-        }
-      }
-      check()
+      moveEP.write(datagram).then(() => {
+        resolve()
+      }).catch((err) => {
+        reject(err)
+      })
     })
   }
-  */
-  
+
 }

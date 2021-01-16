@@ -57,18 +57,15 @@ moveInput.addListener((move) => {
 })
 
 let ep = osap.endpoint()
-ep.addRoute(TS.route().portf(0).portf(1).end(), TS.endpoint(0,0), 512)
+ep.addRoute(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 0), 512)
 
 let epTestBtn = new Button(240, 10, 94, 14, 'ep test')
 epTestBtn.onClick(() => {
-  testRun().then((res) => {
-    let avg = 0 
-    for(let i = 0; i < res.length; i ++){
-      avg += res[i]
-    }
-    avg /= 1000
-    console.warn(avg)
-    epTestBtn.good(`avg ${avg}`, 500)
+  testRun(10).then((res) => {
+    console.warn(res)
+    epTestBtn.good(`avg ${res}`, 500)
+  }).catch((err) => {
+    console.log('err')
   })
   /*
   let datagram = Uint8Array.from([12, 24, 36])
@@ -87,18 +84,37 @@ epTestBtn.onClick(() => {
   */
 })
 
-let testRun = async () => {
+let testRun = async (count) => {
   let datagram = Uint8Array.from([12, 24, 36])
   let start = performance.now()
-  let times = []
-  for(let i = 0; i < 1000; i ++){
-    await ep.write(datagram)
-    let now = performance.now()
-    times.push(now - start)
-    start = now 
+  let avg = 0
+  try {
+    for (let i = 0; i < count; i++) {
+      console.log(`test ${i}`)
+      await ep.write(datagram)
+      let now = performance.now()
+      avg += now - start
+      start = now
+    }
+  } catch (err) {
+    throw new Error(err) 
   }
-  return times
+  return avg / count 
 }
+
+let posns = osap.query(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 0), 512)
+
+let qTestBtn = new Button(240, 40, 94, 14, 'query test')
+qTestBtn.onClick(() => {
+  posns.pull().then((data) => {
+    console.warn("query passed", data)
+    qTestBtn.good('ok', 200)
+  }).catch((err) => {
+    console.warn("query fails")
+    console.error(err)
+    qTestBtn.bad('fail', 200)
+  })
+})
 
 /*
 

@@ -74,10 +74,24 @@ void OSAP::handleAppPacket(uint8_t *pck, uint16_t ptr, pckm_t* pckm){
 
 // -------------------------------------------------------- OSAP ENDPOINTS
 
-boolean onMoveEPData(uint8_t* data, uint16_t len){
+
+unsigned long wait = 500;
+unsigned long last = millis();
+
+boolean onTestData(uint8_t* data, uint16_t len){
   // test test, 
-  return true;
-  /*
+  unsigned long now = millis();
+  if(last + wait < now){
+    last = now;
+    return true;
+  } else {
+    return false;
+  }
+}
+
+Endpoint* testEP = osap->endpoint(onTestData);
+
+boolean onMoveData(uint8_t* data, uint16_t len){
   // can we load it?
   if(!conveyor->is_queue_full()){
     // get positions 
@@ -102,11 +116,12 @@ boolean onMoveEPData(uint8_t* data, uint16_t len){
     // await, try again next loop 
     return false;
   }
-  */
 }
 
-Endpoint* moveEP = osap->endpoint(onMoveEPData);
+Endpoint* moveEP = osap->endpoint(onMoveData);
 
+
+uint8_t qtest[6] = { 12, 24, 48, 96, 48, 24 };
 
 void setup() {
   ERRLIGHT_SETUP;
@@ -123,6 +138,8 @@ void setup() {
   smoothieRoll->init();
   // 100kHz base (10us period)
   d51_clock_boss->start_ticker_a(10);
+  // ... 
+  testEP->write(qtest, 6);
 }
 
 void loop() {
