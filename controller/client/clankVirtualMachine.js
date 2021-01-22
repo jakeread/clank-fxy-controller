@@ -48,6 +48,22 @@ export default function ClankVM(osap, route) {
     })
   }
 
+  // an a 'query' to check current position 
+  let posQuery = osap.query(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 2), 512)
+  this.getPos = () => {
+    return new Promise((resolve, reject) => {
+      posQuery.pull().then((data) => {
+        let pos = {
+          X: TS.read('float32', data, 0, true),
+          Y: TS.read('float32', data, 4, true),
+          Z: TS.read('float32', data, 8, true),
+          E: TS.read('float32', data, 12, true)
+        }
+        resolve(pos)
+      }).catch((err) => { reject(err) })  
+    })
+  }
+
   // the toooolchanger, 
   let tcServoEP = osap.endpoint()
   tcServoEP.addRoute(TS.route().portf(0).portf(1).busf(1, 1).end(), TS.endpoint(0, 0), 512)

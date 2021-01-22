@@ -62,6 +62,12 @@ Oy,
 Yeah I'm trying to sidestep extruder stuff but I need to engage with it. Smoothie dealt with it in some offline manner... i.e. not coupled to the 'target' motion. Instead of trying to hack something, it is time that I engage with this properly. 
 
 - revert to clank-cz controller smoothieroll, check x motor runs properly here 
+- ok, now I should try adding the new move on the A channel transmit, try a steady stream... make sure this still works 
+- this look ok as well, 
+- query position & debug / draw 
+- ok, that's fine... 
+
+I think it's time to try to understand smoothie's guts and, hopefully, tack on those E moves. 
 
 ## 2021 01 21 
 

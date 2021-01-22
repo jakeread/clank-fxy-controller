@@ -78,7 +78,7 @@ boolean onMoveData(uint8_t* data, uint16_t len){
     uint16_t ptr = 0;
     // feedrate is 1st, 
     chunk_float32 feedrateChunk = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
-    // get positions 
+    // get positions XYZE
     chunk_float32 targetChunks[4];
     targetChunks[0] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
     targetChunks[1] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
@@ -101,6 +101,12 @@ boolean onMoveData(uint8_t* data, uint16_t len){
   }
 }
 Endpoint* moveEP = osap->endpoint(onMoveData);
+
+boolean onPositionData(uint8_t* data, uint16_t len){
+  // don't do anything with this, but would use it to set 
+  return true;
+}
+Endpoint* posEP = osap->endpoint(onPositionData);
 
 // -------------------------------------------------------- SETUP 
 
@@ -134,6 +140,15 @@ void loop() {
   // blink
   ledTickCount ++;
   if(ledTickCount > 1024){
+    // write new pos data periodically, 
+    uint8_t posData[16];
+    uint16_t poswptr = 0;
+    ts_writeFloat32(smoothieRoll->actuators[0]->floating_position, posData, &poswptr);
+    ts_writeFloat32(smoothieRoll->actuators[1]->floating_position, posData, &poswptr);
+    ts_writeFloat32(smoothieRoll->actuators[2]->floating_position, posData, &poswptr);
+    ts_writeFloat32(0, posData, &poswptr);
+    posEP->write(posData, 16);
+    // blink 
     DEBUG1PIN_TOGGLE;
     ledTickCount = 0;
   }
@@ -158,6 +173,7 @@ osap->send(txroute, 11, 512, txpck, wptr);
 // runs on period defined by timer_a setup: 
 volatile uint8_t tick_count = 0;
 uint8_t motion_packet[64]; // three floats bb, space 
+float extruder_virtual = 0;
 
 void TC0_Handler(void){
   // runs at 100KHz (10us period), eats about 2.5us, or 5 if the transmit occurs 
@@ -169,7 +185,7 @@ void TC0_Handler(void){
   // do step tick 
   smoothieRoll->step_tick();
   // every n ticks, ship position? 
-  if(tick_count > 20){
+  if(tick_count > 25){
     tick_count = 0;
     uint16_t mpptr = 0; // motion packet pointer 
     if(planner->do_set_position){
@@ -184,10 +200,11 @@ void TC0_Handler(void){
     ts_writeFloat32(smoothieRoll->actuators[2]->floating_position, motion_packet, &mpptr);
     //ts_writeFloat32(smoothieRoll->actuators[3]->floating_position, motion_packet, &mpptr);
     // dummy E / L value, 
-    //ts_writeFloat32(0.025, motion_packet, &mpptr);
+    extruder_virtual += 0.005;
+    ts_writeFloat32(extruder_virtual, motion_packet, &mpptr);
     // write packet, put on ucbus
     //DEBUG3PIN_ON;
-    ucBusHead->transmit_a(motion_packet, 17);
+    ucBusHead->transmit_a(motion_packet, 21);
     //DEBUG3PIN_OFF;
   }
 }

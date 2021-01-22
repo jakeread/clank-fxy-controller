@@ -57,9 +57,36 @@ moveInput.addListener((move) => {
   })
 })
 
+// this is... kind of buggy. button state sometimes straightforwards, sometimes callback hell 
+let posBtn = new Button(360, 10, 344, 14, 'pos')
+let posLp = false 
+let posTimeout = null 
+posBtn.onClick(() => {
+  if(posLp){
+    posLp = false 
+    if(posTimeout) clearTimeout(posTimeout)
+    posBtn.good("stop", 500)
+  } else {
+    let poll = () => {
+      vm.getPos().then((pos) => {
+        if(posLp){
+          $(posBtn.elem).text(`X: ${pos.X.toFixed(2)}, Y: ${pos.Y.toFixed(2)}, Z: ${pos.Z.toFixed(2)}, E: ${pos.E.toFixed(2)}`)
+          posTimeout = setTimeout(poll, 50)  
+        }
+      }).catch((err) => {
+        posLp = false
+        console.error(err)
+        posBtn.bad("err", 1000)
+      })
+    }
+    poll()
+    posLp = true 
+  }
+})
+
 let closedWidth = 2000
 let openWidth = 875
-let tcBtn = new Button(360, 10, 94, 14, 'tc')
+let tcBtn = new Button(360, 40, 94, 14, 'tc')
 tcBtn.onClick(() => {
   if($(tcBtn.elem).text() == 'close tc'){
     vm.setTCServo(openWidth).then(() => {
