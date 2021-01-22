@@ -10,6 +10,103 @@
 - change gcode parsing system: maybe delete these js modules, instead do direct vm call / which returns the osap.write() ? or so, idk how you want to do this 
 - gcode delivery: need to change the timeout scale here to await those long acks for potentially lengthy gcodes... 
 
+### Thursday 
+
+- get extruder moves out of the smoothie roll 
+  - rebuild stepper fw with osape submodule,
+  - rebuild to consume E moves 
+  - make smoothie roll well-separated piece of motion control kit / submodule
+  - manipulate smoothie to pull extruder-actual-posn out (relative / absolute?)
+  - push that on yonder net,
+  - find your net spreadsheet, how many ticks / sec can do this?
+
+### Friday
+
+- setup your machine:
+  - sync osape, pull to stepper code, 
+  - step codes on YL, YR, Z, X, E, configurate 
+  - network sweep / check things appear as they should, 
+- test this gcode, 
+  - why the long hang?
+  - if long hangs are needed, implement some endpoint door-knocking: are you still home? another layer of timeouts... this is a way to not-miss acks as well, maybe a good thing to have 
+- start heater dev: 
+  - PID endpoints, 
+  - query to plot temp, 
+  - run PID in JS first (?)
+    - 'loop' 100ms, 
+    - timeout on embedded side: if no action in 500ms, turn 'em off 
+
+### Saturday
+
+- wrap it up: make hotend flow plastic, see about laying some tracks... 
+
+### Sunday
+
+- that's it ? you can run printer codes now? fix your UI for long gcodes, 
+  - try a longer print, with a big nozzle for a more-even bed 
+  - secure the demo 
+- now, do the loadcell code, to read,
+- now, run some demo code & record (via query) times / temps / loadcell loads at some hz / maybe 100 (?) if possible. network / flow control will be stressed, bueno. use recording to draw data in heatmap of when-extruder-load-was-highest 
+
+## 2021 01 22 
+
+Have today, tomorrow, sunday, to wrap this up. 
+
+Motion control feels exceptionally buggy at the moment, so today should mostly be about ironing that out. 
+
+Oy,
+- query position to interrogate motion control
+- this demo motor doesn't show up on the graph ? circuit busted ? 
+  - more likely, not enough space on the bus ? 
+
+Yeah I'm trying to sidestep extruder stuff but I need to engage with it. Smoothie dealt with it in some offline manner... i.e. not coupled to the 'target' motion. Instead of trying to hack something, it is time that I engage with this properly. 
+
+- revert to clank-cz controller smoothieroll, check x motor runs properly here 
+
+## 2021 01 21 
+
+- button opens closes
+- recognize / toss gcode moves from ahn printer 
+    - feedrate: smoothie will consume mm/sec, these are mm/min ? convert?
+    - 'once' through, recognizing or tossing... 
+    - smoothieroll: listens to extruder calls? how to interface smoothieroll in?
+    - smoothieroll: how to get extruder calls out? time on CHA ? 
+
+I'm wanting to write a decent interface to the gcode module. I am reluctant to continue using what I have here but I think it's actually kind of decent, so I will avoid re-writing... a halfway solution to these is no fun, I need to do it full on / the action I anticipate. 
+
+OK, have furnished some things in the gcode module, I think I need to get back to the machine and jog it around now, get myself into extruder moves, and then I'll be into temps. 
+
+- dipswitch count 'em, reload stepper firmware 
+- try steps w/ XYZ ... jog ? 
+- run mocontrol... on g28, demo lifts z ? 
+
+I think I will be able to get away with sticking an E term in here pretty unceremoniously, to my smoothieroll. 
+
+Eh, nope, a naive approach seems to hang it up... the whole kit isn't *that* huge though, I should be able to piece this together.
+
+Fixed for now, another hack, still don't have a great handle on the code, although it isn't so overwhelming and with some decent treatment I should be able to really wrestle it into doing what I'd like.
+
+In any case, the issue now is with timeouts... i.e. I need to wait longer for 'yacks' from the planner than normal. The quick hack would be just setting a wicked long timeout for this endpoint, the more robust (or, maybe just more complex) thing to do would be to instrument an 'endpoint check' datagram, that effectively knocks on the door every once and a while to make sure the data line is not severed or anything. 
+
+I think there are still some motion bugs, this shouldn't hang more than 100s, where I've sloppily set the timeout to. So, tomorrow I'll wire up motors and should be able to get a better sense of what's going on with that... probably some more smoothie diving to do inside of that bug. 
+
+## 2021 01 20
+
+Alright, I think I want a better interface on this servo. Endpoint should be to set pwm by us tick ~ 800 -> 2200 us, full width. I can write the 'abstraction' on top of this. 
+
+So, next up, I'll modify that and do a .write() to do 800-2200 width. 
+
+This is also a place where I'd love for the servo to startup (on power on) at the same place it was left... i.e. so that a tool which was left hanging is re-attached automatically... I'll just have to leave that in firmware for the time being. 
+
+Oy, getting into it. Have to setup the bus again, give this a drop... I should use the dip switches, and setup and endpoint here for the servo command.
+
+- dipswitch bus drop
+- endpoint for micros, uint32,
+- endpoint to write in js, route, 
+- cz-controller head, button does open / close... 
+
+Bless, the dip switch code actually seems like it works OK, and I can still draw these things OK. 
+
 ## 2021 01 15
 
 OK, finally through this osap rollup of endpoints - these are the 'source addressed' data objects (i.e. inputs and outputs) that I'd like to use to (re)build this virtual machine with now. 

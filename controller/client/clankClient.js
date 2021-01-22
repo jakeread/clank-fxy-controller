@@ -37,7 +37,7 @@ osap.name = "clank client"
 osap.description = "clank cz browser interface"
 
 // draws network, 
-let netrunner = new NetRunner(osap, 20, 400, false)
+let netrunner = new NetRunner(osap, 10, 760, false)
 
 // vm, 
 let vm = new ClankVM(osap)
@@ -50,11 +50,46 @@ let moveInput = new Input()
 gCodePanel.moveOut.attach(moveInput)
 moveInput.addListener((move) => {
   return new Promise((resolve, reject) => {
+    move.rate = move.rate
     vm.addMoveToQueue(move).then(() => {
       resolve()
     }).catch((err) => { reject(err) })
   })
 })
+
+let closedWidth = 2000
+let openWidth = 875
+let tcBtn = new Button(360, 10, 94, 14, 'tc')
+tcBtn.onClick(() => {
+  if($(tcBtn.elem).text() == 'close tc'){
+    vm.setTCServo(openWidth).then(() => {
+      tcBtn.good('ok', 500)
+      setTimeout(() => {
+        $(tcBtn.elem).text('open tc')
+      }, 500)
+    }).catch((err) => {
+      console.error(err)
+      tcBtn.bad('err', 500)
+      setTimeout(() => {
+        $(tcBtn.elem).text('close tc')
+      }, 500)
+    })
+  } else {
+    vm.setTCServo(closedWidth).then(() => {
+      tcBtn.good('ok', 500)
+      setTimeout(() => {
+        $(tcBtn.elem).text('close tc')
+      }, 500)
+    }).catch((err) => {
+      console.error(err)
+      tcBtn.bad('err', 500)
+      setTimeout(() => {
+        $(tcBtn.elem).text('open tc')
+      }, 500)
+    })
+  }
+})
+$(tcBtn.elem).text('close tc')
 
 let ep = osap.endpoint()
 ep.addRoute(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 0), 512)

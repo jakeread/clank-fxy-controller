@@ -7,7 +7,7 @@ Jake Read at the Center for Bits and Atoms
 (c) Massachusetts Institute of Technology 2019
 
 This work may be reproduced, modified, distributed, performed, and
-displayed for any purpose, but must acknowledge the osap project.
+displayed for any purpose, but must acknowledge the squidworks and ponyo projects.
 Copyright is retained and must be preserved. The work is provided as is;
 no warranty is provided, and users accept all liability.
 */
@@ -23,8 +23,6 @@ no warranty is provided, and users accept all liability.
 // motor state-trackers
 #include "modules/robot/StepInterface.h"
 
-#define SMOOTHIEROLL_NUM_MOTORS 3 
-
 class SmoothieRoll{
     public:
         SmoothieRoll(void);
@@ -32,7 +30,7 @@ class SmoothieRoll{
         void init(void);
         void step_tick(void);
 
-        StepInterface* actuators[SMOOTHIEROLL_NUM_MOTORS];
+        StepInterface* actuators[3];
 
     private:
         static SmoothieRoll* instance;

@@ -93,7 +93,7 @@ void Planner::append_move( float* target, uint8_t n_motors, float rate){
     // append it 
     // would also do: set accel for lowest in move (with per motor accel) 
     // and set speed for lowest max. speed per motor 
-    append_block(feedPos, 3, rate, dist, unit, 100.0F, 1.0F, true);
+    append_block(feedPos, 3, rate, dist, unit, 400.0F, 1.0F, true);
                //feedPos, 3, 100, dist, unit, 100, s_value, true
 }
 

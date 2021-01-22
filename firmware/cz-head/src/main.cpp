@@ -16,16 +16,6 @@ VPort_USBSerial* vPortSerial = new VPort_USBSerial();
 #include "osape/osap/vport_ucbus_head.h"
 VPort_UCBus_Head* vPortUcBusHead = new VPort_UCBus_Head();
 
-union chunk_float32 {
-  uint8_t bytes[4];
-  float f;
-};
-
-union chunk_uint32 {
-  uint8_t bytes[4];
-  uint32_t u;
-};
-
 // adhoc reply 
 uint8_t reply[1024];
 uint16_t rl = 0;
@@ -57,23 +47,12 @@ uint8_t testPacket[8] = {1, 3, 5, 7, 9, 13, 17, 23};
 uint8_t testReturnPacket[1024];
 
 // pck[ptr] == DK_APP
+// app packets depricated in favour of endpoints 
 void OSAP::handleAppPacket(uint8_t *pck, uint16_t ptr, pckm_t* pckm){
-  // clear out our reply,   
-  rl = 0;
-  // do the reading:
-  ptr ++; // walk appcode DK_APP
-  switch(pck[ptr]){
-    default:
-      sysError("nonreq. appkey " + String(pck[ptr]));
-      break;
-  }// end pck ptr switch 
-  // check if should issue reply 
-  // always do, 
   pckm->vpa->clear(pckm->location);
 }
 
-// -------------------------------------------------------- OSAP ENDPOINTS
-
+// -------------------------------------------------------- OSAP ENDPOINTS TEST
 
 unsigned long wait = 500;
 unsigned long last = millis();
@@ -88,28 +67,32 @@ boolean onTestData(uint8_t* data, uint16_t len){
     return false;
   }
 }
-
 Endpoint* testEP = osap->endpoint(onTestData);
+uint8_t qtest[6] = { 12, 24, 48, 96, 48, 24 };
 
 boolean onMoveData(uint8_t* data, uint16_t len){
   // can we load it?
   if(!conveyor->is_queue_full()){
-    // get positions 
+    DEBUG2PIN_TOGGLE;
+    // read from head, 
     uint16_t ptr = 0;
-    chunk_float32 targetChunks[3];
+    // feedrate is 1st, 
+    chunk_float32 feedrateChunk = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+    // get positions 
+    chunk_float32 targetChunks[4];
     targetChunks[0] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
     targetChunks[1] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
     targetChunks[2] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
-    // get feed 
-    chunk_float32 feedrateChunk = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+    targetChunks[3] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+    // check and load, 
     if(feedrateChunk.f < 0.01){
       sysError("ZERO FR");
       return true; // ignore this & ack 
     } else {
       // do load 
-      float target[3] = {targetChunks[0].f, targetChunks[1].f, targetChunks[2].f};
+      float target[3] = {targetChunks[0].f, targetChunks[1].f, targetChunks[2].f };
       //sysError("targets, rate: " + String(target[0], 6) + ", " + String(target[1], 6) + ", " + String(target[2], 6) + ", " + String(feedrateChunk.f, 6));
-      planner->append_move(target, 3, feedrateChunk.f);
+      planner->append_move(target, 3, feedrateChunk.f / 60); // mm/min -> mm/sec 
       return true; 
     }
   } else {
@@ -117,11 +100,9 @@ boolean onMoveData(uint8_t* data, uint16_t len){
     return false;
   }
 }
-
 Endpoint* moveEP = osap->endpoint(onMoveData);
 
-
-uint8_t qtest[6] = { 12, 24, 48, 96, 48, 24 };
+// -------------------------------------------------------- SETUP 
 
 void setup() {
   ERRLIGHT_SETUP;
@@ -140,12 +121,22 @@ void setup() {
   d51_clock_boss->start_ticker_a(10);
   // ... 
   testEP->write(qtest, 6);
+
+  ERRLIGHT_ON;
+  CLKLIGHT_ON;
 }
 
+uint32_t ledTickCount = 0;
 void loop() {
   //DEBUG2PIN_TOGGLE;
   osap->loop();
   conveyor->on_idle(nullptr);
+  // blink
+  ledTickCount ++;
+  if(ledTickCount > 1024){
+    DEBUG1PIN_TOGGLE;
+    ledTickCount = 0;
+  }
 } // end loop 
 
 /*
@@ -187,11 +178,13 @@ void TC0_Handler(void){
     } else {
       motion_packet[mpptr ++] = UB_AK_GOTOPOS;
     }
+    // XYZE 
     ts_writeFloat32(smoothieRoll->actuators[0]->floating_position, motion_packet, &mpptr);
     ts_writeFloat32(smoothieRoll->actuators[1]->floating_position, motion_packet, &mpptr);
     ts_writeFloat32(smoothieRoll->actuators[2]->floating_position, motion_packet, &mpptr);
+    //ts_writeFloat32(smoothieRoll->actuators[3]->floating_position, motion_packet, &mpptr);
     // dummy E / L value, 
-    ts_writeFloat32(0.025, motion_packet, &mpptr);
+    //ts_writeFloat32(0.025, motion_packet, &mpptr);
     // write packet, put on ucbus
     //DEBUG3PIN_ON;
     ucBusHead->transmit_a(motion_packet, 17);
