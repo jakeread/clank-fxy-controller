@@ -15,7 +15,8 @@
 #include <bitset>
 #include <functional>
 #include <atomic>
-#include "../modules/robot/ActuatorCoordinates.h"
+
+#include "../SmoothieRoll.h"
 #include "../modules/robot/Conveyor.h"
 // step state interface hack 
 #include "../modules/robot/StepInterface.h"
@@ -28,7 +29,6 @@ class Block;
 #include <Arduino.h>
 #include "../../drivers/indicators.h"
 #include "../../osape/utils/clocks_d51.h"
-#include "../SmoothieRoll.h"
 
 // handle 2.30 Fixed point
 #define STEPTICKER_FPSCALE (1<<30)

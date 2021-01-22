@@ -8,13 +8,13 @@
 #ifndef PLANNER_H
 #define PLANNER_H
 
-#include "ActuatorCoordinates.h"
 #include <Arduino.h>
 #include "../../../drivers/indicators.h"
 
+#include "../../SmoothieConfig.h"
+#include "../../SmoothieRoll.h"
 #include "Block.h"
 #include "Conveyor.h"
-#include "../../SmoothieRoll.h"
 
 class Block;
 
@@ -25,7 +25,7 @@ public:
     static Planner* getInstance(void);
     float max_allowable_speed( float acceleration, float target_velocity, float distance);
     bool append_block(ActuatorCoordinates &target, uint8_t n_motors, float rate_mm_s, float distance, float unit_vec[], float accleration, float s_value, bool g123);
-    void append_move(float *target, uint8_t n_motors, float rate);
+    void append_move(float *target, uint8_t n_motors, float rate, float delta_e);
     void set_position(float *target, uint8_t n_motors);
     volatile boolean do_set_position = false;
 

@@ -41,9 +41,9 @@ void StepTicker::init(void){
     // Default start values
     this->set_frequency(100000);
 
-    this->num_motors = 3;
+    this->num_motors = SR_NUM_MOTORS;
 
-    for(uint8_t m = 0; m < 3; m ++){
+    for(uint8_t m = 0; m < SR_NUM_MOTORS; m ++){
         motor[m] = smoothieRoll->actuators[m];
     }
 

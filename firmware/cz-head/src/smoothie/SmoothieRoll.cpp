@@ -31,13 +31,13 @@ SmoothieRoll::SmoothieRoll(void){
 
 void SmoothieRoll::init(void){
     // make motors 
-    for(uint8_t m = 0; m < 3; m ++){
+    for(uint8_t m = 0; m < SR_NUM_MOTORS; m ++){
         actuators[m] = new StepInterface();
     }
     stepTicker->init();
     stepTicker->start();
     conveyor->on_module_loaded();
-    conveyor->start(3);
+    conveyor->start(SR_NUM_MOTORS);
 }
 
 void SmoothieRoll::step_tick(void){

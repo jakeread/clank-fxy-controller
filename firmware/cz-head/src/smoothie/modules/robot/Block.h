@@ -9,7 +9,8 @@
 
 #include <vector>
 #include <bitset>
-#include "ActuatorCoordinates.h"
+
+#include "../../SmoothieRoll.h"
 
 class Block {
     public:

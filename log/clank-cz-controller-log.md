@@ -67,7 +67,11 @@ Yeah I'm trying to sidestep extruder stuff but I need to engage with it. Smoothi
 - query position & debug / draw 
 - ok, that's fine... 
 
-I think it's time to try to understand smoothie's guts and, hopefully, tack on those E moves. 
+I think it's time to try to understand smoothie's guts and, hopefully, tack on those E moves... so... :/ 
+
+- have NUM_MOTORS (4) and NUM_MOTION_AXIS (3) 
+- build w/ this count of step interfaces, but don't change anything else... test 
+- observe how blocks are built (?) and add stepper ticks (?) 
 
 ## 2021 01 21 
 

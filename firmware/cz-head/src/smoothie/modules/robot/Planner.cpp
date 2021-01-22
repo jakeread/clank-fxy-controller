@@ -69,7 +69,7 @@ void Planner::set_position(float* pos, uint8_t n_motors){
 }
 
 // motion packet -> block 
-void Planner::append_move( float* target, uint8_t n_motors, float rate){
+void Planner::append_move( float* target, uint8_t n_motors, float rate, float delta_e){
     // do increments on last milestone appended, checking if moves are abs. or inc. 
     // ... 
     ActuatorCoordinates feedPos;
@@ -93,7 +93,7 @@ void Planner::append_move( float* target, uint8_t n_motors, float rate){
     // append it 
     // would also do: set accel for lowest in move (with per motor accel) 
     // and set speed for lowest max. speed per motor 
-    append_block(feedPos, 3, rate, dist, unit, 400.0F, 1.0F, true);
+    append_block(feedPos, 3, rate, dist, unit, SR_ACCEL, 1.0F, true);
                //feedPos, 3, 100, dist, unit, 100, s_value, true
 }
 

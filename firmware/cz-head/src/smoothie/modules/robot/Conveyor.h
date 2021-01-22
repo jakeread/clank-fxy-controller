@@ -11,6 +11,9 @@
 #include "../../libs/HeapRing.h"
 #include "../../../drivers/indicators.h"
 
+#include "../../SmoothieConfig.h"
+#include "../../SmoothieRoll.h"
+
 using namespace std;
 #include <string>
 #include <vector>
@@ -30,7 +33,7 @@ public:
     void on_halt(void *);
 
     void setWaitTime(uint32_t ms);
-    void wait_for_idle(bool wait_for_motors=true);
+    void wait_for_idle(bool wait_for_motors = true);
     bool is_queue_empty() { return queue.is_empty(); };
     bool is_queue_full() { return queue.is_full(); };
     unsigned int queue_space(void);

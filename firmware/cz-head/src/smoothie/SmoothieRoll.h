@@ -22,6 +22,8 @@ no warranty is provided, and users accept all liability.
 #include "smoothie/modules/robot/Planner.h"   // has singleton 'planner'
 // motor state-trackers
 #include "modules/robot/StepInterface.h"
+// smoothie globals ?
+#include "SmoothieConfig.h"
 
 class SmoothieRoll{
     public:
@@ -30,7 +32,7 @@ class SmoothieRoll{
         void init(void);
         void step_tick(void);
 
-        StepInterface* actuators[3];
+        StepInterface* actuators[SR_NUM_MOTORS];
 
     private:
         static SmoothieRoll* instance;
