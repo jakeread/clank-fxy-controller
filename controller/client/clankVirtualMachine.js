@@ -36,7 +36,8 @@ export default function ClankVM(osap, route) {
     if (move.position.E) {
       wptr += TS.write('float32', move.position.E, datagram, wptr, true)
     } else {
-      wptr += TS.write('float32', 0, datagram, wptr, true)
+      console.warn('0.1')
+      wptr += TS.write('float32', 1, datagram, wptr, true)
     }
     // do the networking, 
     return new Promise((resolve, reject) => {

@@ -93,9 +93,10 @@ void StepTicker::step_tick (void){
     }
     */
 
-    bool still_moving= false;
+    bool still_moving = false;
     // foreach motor, if it is active see if time to issue a step to that motor
     for (uint8_t m = 0; m < num_motors; m++) {
+
         if(current_block->tick_info[m].steps_to_move == 0) continue; // not active
 
         current_block->tick_info[m].steps_per_tick += current_block->tick_info[m].acceleration_change;
@@ -131,11 +132,8 @@ void StepTicker::step_tick (void){
 
             // step the motor
             bool ismoving = motor[m]->step(); // returns false if the moving flag was set to false externally (probes, endstops etc)
-            if(m == 0 && ismoving){
+            if(m == 3 && ismoving){
                 DEBUG2PIN_TOGGLE;
-                //stepper_hw->step();
-            } else if (m == 1 && ismoving){
-                DEBUG4PIN_TOGGLE;
             }
 
             if(!ismoving || current_block->tick_info[m].step_count == current_block->tick_info[m].steps_to_move) {

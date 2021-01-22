@@ -35,7 +35,7 @@ class StepInterface {
         volatile boolean direction = false;
         volatile boolean moving = false;
 
-        float steps_per_mm = 400.0F;
+        float steps_per_mm = 400.0F; // for everyone: this is a hack... actually we send floating posns to steppers, who deal with this config 
         float mm_per_step = 1 / steps_per_mm;
         int32_t last_milestone_steps = 0;
         float last_milestone_mm = 0;

@@ -48,6 +48,10 @@
 - now, do the loadcell code, to read,
 - now, run some demo code & record (via query) times / temps / loadcell loads at some hz / maybe 100 (?) if possible. network / flow control will be stressed, bueno. use recording to draw data in heatmap of when-extruder-load-was-highest 
 
+### Extruder Motion Check
+
+- likely breaks on e-only moves... test, check, avoid i.e. zero unit vector 
+
 ## 2021 01 22 
 
 Have today, tomorrow, sunday, to wrap this up. 
@@ -72,6 +76,8 @@ I think it's time to try to understand smoothie's guts and, hopefully, tack on t
 - have NUM_MOTORS (4) and NUM_MOTION_AXIS (3) 
 - build w/ this count of step interfaces, but don't change anything else... test 
 - observe how blocks are built (?) and add stepper ticks (?) 
+
+Working through it... 
 
 ## 2021 01 21 
 

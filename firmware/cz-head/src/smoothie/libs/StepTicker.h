@@ -44,7 +44,7 @@ class StepTicker{
         uint32_t period;
         // not using motor refs, direct stepping std::array<StepperMotor*, k_max_actuators> motor;
         // do adhoc hack 
-        StepInterface* motor[3];
+        StepInterface* motor[SR_NUM_MOTORS];
 
         Block *current_block;
         uint32_t current_tick{0};

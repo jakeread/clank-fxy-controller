@@ -79,6 +79,9 @@ void Planner::append_move( float* target, uint8_t n_motors, float rate, float de
         deltas[m] = target[m] - last_position[m];
         last_position[m] = target[m];
     }
+    // do delta, for E ... 
+    last_position[3] += delta_e;
+    feedPos[3] = last_position[3];
     // calc sum of squares on increments 
     float sos = powf(deltas[0], 2) + powf(deltas[1], 2) + powf(deltas[2], 2);
     float dist = sqrtf(sos);
@@ -93,7 +96,7 @@ void Planner::append_move( float* target, uint8_t n_motors, float rate, float de
     // append it 
     // would also do: set accel for lowest in move (with per motor accel) 
     // and set speed for lowest max. speed per motor 
-    append_block(feedPos, 3, rate, dist, unit, SR_ACCEL, 1.0F, true);
+    append_block(feedPos, n_motors, rate, dist, unit, SR_ACCEL, 1.0F, true);
                //feedPos, 3, 100, dist, unit, 100, s_value, true
 }
 
@@ -108,6 +111,9 @@ bool Planner::append_block( ActuatorCoordinates &actuator_pos, uint8_t n_motors,
         // hell yeah, ok, the actuators know where they are in step space, i.e. how many ticks they have ticked 
         // so this asks them to produce a # of steps to the end of this target, given that current state
         int32_t steps = smoothieRoll->actuators[i]->steps_to_target(actuator_pos[i]);
+        if(i == 3){
+            //sysError("add e steps " + String(steps));
+        }
         if(i == 0 && false){
             sysError("steps-x: " + String(steps)
                     + " t: " + String(actuator_pos[i], 6)
@@ -125,7 +131,7 @@ bool Planner::append_block( ActuatorCoordinates &actuator_pos, uint8_t n_motors,
         block->direction_bits[i] = (steps < 0) ? 1 : 0;
         // save actual steps in block
         block->steps[i] = labs(steps);
-    }
+    } // end for each motor 
 
     // sometimes even though there is a detectable movement it turns out there are no steps to be had from such a small move
     if(!has_steps) {

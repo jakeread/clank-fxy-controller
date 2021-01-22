@@ -73,7 +73,6 @@ uint8_t qtest[6] = { 12, 24, 48, 96, 48, 24 };
 boolean onMoveData(uint8_t* data, uint16_t len){
   // can we load it?
   if(!conveyor->is_queue_full()){
-    DEBUG2PIN_TOGGLE;
     // read from head, 
     uint16_t ptr = 0;
     // feedrate is 1st, 
@@ -92,7 +91,7 @@ boolean onMoveData(uint8_t* data, uint16_t len){
       // do load 
       float target[3] = {targetChunks[0].f, targetChunks[1].f, targetChunks[2].f };
       //sysError("targets, rate: " + String(target[0], 6) + ", " + String(target[1], 6) + ", " + String(target[2], 6) + ", " + String(feedrateChunk.f, 6));
-      planner->append_move(target, 3, feedrateChunk.f / 60, targetChunks[3].f); // mm/min -> mm/sec 
+      planner->append_move(target, SR_NUM_MOTORS, feedrateChunk.f / 60, targetChunks[3].f); // mm/min -> mm/sec 
       return true; 
     }
   } else {
@@ -146,7 +145,7 @@ void loop() {
     ts_writeFloat32(smoothieRoll->actuators[0]->floating_position, posData, &poswptr);
     ts_writeFloat32(smoothieRoll->actuators[1]->floating_position, posData, &poswptr);
     ts_writeFloat32(smoothieRoll->actuators[2]->floating_position, posData, &poswptr);
-    ts_writeFloat32(0, posData, &poswptr);
+    ts_writeFloat32(smoothieRoll->actuators[3]->floating_position, posData, &poswptr);
     posEP->write(posData, 16);
     // blink 
     DEBUG1PIN_TOGGLE;
@@ -198,10 +197,7 @@ void TC0_Handler(void){
     ts_writeFloat32(smoothieRoll->actuators[0]->floating_position, motion_packet, &mpptr);
     ts_writeFloat32(smoothieRoll->actuators[1]->floating_position, motion_packet, &mpptr);
     ts_writeFloat32(smoothieRoll->actuators[2]->floating_position, motion_packet, &mpptr);
-    //ts_writeFloat32(smoothieRoll->actuators[3]->floating_position, motion_packet, &mpptr);
-    // dummy E / L value, 
-    extruder_virtual += 0.005;
-    ts_writeFloat32(extruder_virtual, motion_packet, &mpptr);
+    ts_writeFloat32(smoothieRoll->actuators[3]->floating_position, motion_packet, &mpptr);
     // write packet, put on ucbus
     //DEBUG3PIN_ON;
     ucBusHead->transmit_a(motion_packet, 21);

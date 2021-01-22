@@ -30,7 +30,7 @@ public:
     volatile boolean do_set_position = false;
 
     // track for increments 
-    float last_position[3] = {0,0,0};
+    float last_position[SR_NUM_MOTORS] = {0,0,0,0};
 
     friend class Robot; // for acceleration, junction deviation, minimum_planner_speed
 
@@ -38,7 +38,7 @@ private:
     static Planner* instance;
     void recalculate();
     void config_load();
-    float previous_unit_vec[3];
+    float previous_unit_vec[SR_NUM_MOTION_AXES];
     float junction_deviation;    // Setting
     float z_junction_deviation;  // Setting
     float minimum_planner_speed; // Setting

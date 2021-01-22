@@ -32,6 +32,7 @@ using std::string;
 //THEKERNEL->step_ticker->get_frequency()
 #define STEP_TICKER_FREQUENCY_2 (STEP_TICKER_FREQUENCY*STEP_TICKER_FREQUENCY)
 
+// this is set on conveyor::start 
 uint8_t Block::n_actuators = 0;
 
 // A block represents a movement, it's length for each stepper motor, and the corresponding acceleration curves.
