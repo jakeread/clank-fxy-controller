@@ -34,10 +34,10 @@ export default function ClankVM(osap, route) {
     wptr += TS.write('float32', move.position.Y, datagram, wptr, true)
     wptr += TS.write('float32', move.position.Z, datagram, wptr, true)
     if (move.position.E) {
+      console.log(move.position.E)
       wptr += TS.write('float32', move.position.E, datagram, wptr, true)
     } else {
-      console.warn('0.1')
-      wptr += TS.write('float32', 1, datagram, wptr, true)
+      wptr += TS.write('float32', 0, datagram, wptr, true)
     }
     // do the networking, 
     return new Promise((resolve, reject) => {
@@ -61,7 +61,40 @@ export default function ClankVM(osap, route) {
           E: TS.read('float32', data, 12, true)
         }
         resolve(pos)
-      }).catch((err) => { reject(err) })  
+      }).catch((err) => { reject(err) })
+    })
+  }
+
+  // another query to see if it's currently moving, 
+  // update that endpoint so we can 'write halt' / 'write go' with a set 
+  let motionQuery = osap.query(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 3), 512)
+  this.awaitMotionEnd = () => {
+    return new Promise((resolve, reject) => {
+      let check = () => {
+        motionQuery.pull().then((data) => {
+          if (data[0] > 0) {
+            setTimeout(check, 50)
+          } else {
+            resolve()
+          }
+        }).catch((err) => {
+          reject(err)
+        })
+      }
+      setTimeout(check, 50)
+    })
+  }
+
+  // an endpoint to write 'wait time' on the remote,
+  let waitTimeEP = osap.endpoint()
+  waitTimeEP.addRoute(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 4), 512)
+  this.setWaitTime = (ms) => {
+    return new Promise((resolve, reject) => {
+      let datagram = new Uint8Array(4)
+      TS.write('uint32', ms, datagram, 0, true)
+      waitTimeEP.write(datagram).then(() => {
+        resolve()
+      }).catch((err) => { reject(err) })
     })
   }
 

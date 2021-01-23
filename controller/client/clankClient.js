@@ -27,6 +27,7 @@ import { Input, Output } from '../osapjs/core/modules.js'
 import { GCodePanel } from '../osapjs/client/components/gCodePanel.js'
 import { AutoPlot } from '../osapjs/client/components/autoPlot.js'
 import { Button } from '../osapjs/client/interface/button.js'
+import { JogBox } from '../osapjs/client/components/jogBox.js'
 
 console.log("hello clank controller")
 
@@ -57,8 +58,10 @@ moveInput.addListener((move) => {
   })
 })
 
+let jogBox = new JogBox(240, 10, vm)
+
 // this is... kind of buggy. button state sometimes straightforwards, sometimes callback hell 
-let posBtn = new Button(360, 10, 344, 14, 'pos')
+let posBtn = new Button(430, 10, 344, 14, 'pos')
 let posLp = false 
 let posTimeout = null 
 posBtn.onClick(() => {
@@ -86,7 +89,7 @@ posBtn.onClick(() => {
 
 let closedWidth = 2000
 let openWidth = 875
-let tcBtn = new Button(360, 40, 94, 14, 'tc')
+let tcBtn = new Button(430, 40, 94, 14, 'tc')
 tcBtn.onClick(() => {
   if($(tcBtn.elem).text() == 'close tc'){
     vm.setTCServo(openWidth).then(() => {
@@ -121,7 +124,7 @@ $(tcBtn.elem).text('close tc')
 let ep = osap.endpoint()
 ep.addRoute(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 0), 512)
 
-let epTestBtn = new Button(240, 10, 94, 14, 'ep test')
+let epTestBtn = new Button(240, 130, 104, 14, 'ep test')
 epTestBtn.onClick(() => {
   testRun(10).then((res) => {
     console.warn(res)
@@ -166,7 +169,7 @@ let testRun = async (count) => {
 
 let posns = osap.query(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 0), 512)
 
-let qTestBtn = new Button(240, 40, 94, 14, 'query test')
+let qTestBtn = new Button(240, 160, 104, 14, 'query test')
 qTestBtn.onClick(() => {
   posns.pull().then((data) => {
     console.warn("query passed", data)

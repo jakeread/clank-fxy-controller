@@ -107,6 +107,22 @@ boolean onPositionData(uint8_t* data, uint16_t len){
 }
 Endpoint* posEP = osap->endpoint(onPositionData);
 
+boolean onMotionEP(uint8_t* data, uint16_t len){
+  // this is also just a query for the time being ... clear it, 
+  return true;
+}
+Endpoint* motionEP = osap->endpoint(onMotionEP);
+
+boolean onWaitTimeEP(uint8_t* data, uint16_t len){
+  // writes a wait time for the queue: handy to shorten this up for jogging 
+  uint32_t ms;
+  uint16_t ptr = 0;
+  ts_readUint32(&ms, data, &ptr);
+  conveyor->setWaitTime(ms);
+  return true;
+}
+Endpoint* waitTimeEP = osap->endpoint(onWaitTimeEP);
+
 // -------------------------------------------------------- SETUP 
 
 void setup() {
@@ -147,6 +163,14 @@ void loop() {
     ts_writeFloat32(smoothieRoll->actuators[2]->floating_position, posData, &poswptr);
     ts_writeFloat32(smoothieRoll->actuators[3]->floating_position, posData, &poswptr);
     posEP->write(posData, 16);
+    // and write motion:
+    uint8_t motion;
+    if(smoothieRoll->actuators[0]->is_moving() || smoothieRoll->actuators[1]->is_moving() || smoothieRoll->actuators[2]->is_moving()){
+      motion = true;
+    } else {
+      motion = false;
+    }
+    motionEP->write(&motion, 1);
     // blink 
     DEBUG1PIN_TOGGLE;
     ledTickCount = 0;

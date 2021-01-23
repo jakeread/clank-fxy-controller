@@ -10,25 +10,15 @@
 - change gcode parsing system: maybe delete these js modules, instead do direct vm call / which returns the osap.write() ? or so, idk how you want to do this 
 - gcode delivery: need to change the timeout scale here to await those long acks for potentially lengthy gcodes... 
 
-### Thursday 
-
-- get extruder moves out of the smoothie roll 
-  - rebuild stepper fw with osape submodule,
-  - rebuild to consume E moves 
-  - make smoothie roll well-separated piece of motion control kit / submodule
-  - manipulate smoothie to pull extruder-actual-posn out (relative / absolute?)
-  - push that on yonder net,
-  - find your net spreadsheet, how many ticks / sec can do this?
-
 ### Friday
 
 - setup your machine:
-  - sync osape, pull to stepper code, 
   - step codes on YL, YR, Z, X, E, configurate 
+    - make sure SPU are clean,
+    - extruder SPU ? 
   - network sweep / check things appear as they should, 
 - test this gcode, 
-  - why the long hang?
-  - if long hangs are needed, implement some endpoint door-knocking: are you still home? another layer of timeouts... this is a way to not-miss acks as well, maybe a good thing to have 
+  - XYZE / 
 - start heater dev: 
   - PID endpoints, 
   - query to plot temp, 
@@ -48,13 +38,15 @@
 - now, do the loadcell code, to read,
 - now, run some demo code & record (via query) times / temps / loadcell loads at some hz / maybe 100 (?) if possible. network / flow control will be stressed, bueno. use recording to draw data in heatmap of when-extruder-load-was-highest 
 
-### Extruder Motion Check
+### Bugs
 
-- likely breaks on e-only moves... test, check, avoid i.e. zero unit vector 
+- what's stress test jogging: what's up with this "recieved ... for unregistered query... ?" business? polling is using network bandwidth, more stuff showing up... I think this is the desire to make a more-robust network. fuzz testing, flow control that rocks, etc. a challenge 
 
 ## 2021 01 22 
 
 Have today, tomorrow, sunday, to wrap this up. 
+
+### E-Moves in the SmoothieRoll
 
 Motion control feels exceptionally buggy at the moment, so today should mostly be about ironing that out. 
 
@@ -77,7 +69,26 @@ I think it's time to try to understand smoothie's guts and, hopefully, tack on t
 - build w/ this count of step interfaces, but don't change anything else... test 
 - observe how blocks are built (?) and add stepper ticks (?) 
 
-Working through it... 
+Working through it... OK, now it makes E moves. Basically the same thing as I did last time, but with some more understanding, not sure what was different, that's what happens when you pay a little bit of attention, I suppose. 
+
+This was testing on some simple gcode, I should get back to the printer codes and see what's different. This also seems to work OK. That's rad, now I can move on. 
+
+### Machine Config
+
+At this point, this is:
+  - pushing stepper code to each axis, 
+  - configuring SPU at each axis / direction, etc 
+  - testing this beta gcode
+    - some z-init to walk it up... might need big torque / low accel there 
+
+I might want to have a jogging system at this point, but it might not be worth it for the demo, just go straight to the heart... Then I should get started with heater PID controllers, that's ideally just one piece of code for both drops. I can use endpoints to write the different PID values for each on startup. Might need the 1kW PSU to heat this bed, might trip the breaker in the nook. 
+
+OK, have SPUs all setup, I think next is just writing some little function to bring the z to zero at startup, as it falls on power down. That's... should be mechanically designed out next time -> I think probably a floating XY stage would be the coolest way to do this machine, now that I see how heavy beds want to be. Leadscrew drive would do the same thing, though, and I could keep the rest of the design stable. IDK about that: later. 
+
+So: tomorrow: 
+  - write the 'set pos' stuff... don't reinvent, go thru CHA
+  - test the beta GCode, have vm handles for temp setting, empty
+  - start heater dev: on hotend first, poll for thermistor, turn heater on / off au manuel, get into PID, endpoints, it's all kind of working... 
 
 ## 2021 01 21 
 
