@@ -136,8 +136,19 @@ export default function ClankVM(osap, route) {
     })
   }
 
-  let tempPTermEP = osap.endpoint()
-  tempPTermEP.addRoute(tempModuleRoute, TS.endpoint(0, 3), 512)
+  let tempPIDTermsEP = osap.endpoint()
+  tempPIDTermsEP.addRoute(tempModuleRoute, TS.endpoint(0, 3), 512)
+  this.setPIDTerms = (vals) => {
+    return new Promise((resolve, reject) => {
+      let datagram = new Uint8Array(12)
+      TS.write('float32', vals[0], datagram, 0, true)
+      TS.write('float32', vals[1], datagram, 4, true)
+      TS.write('float32', vals[2], datagram, 8, true)
+      tempPIDTermsEP.write(datagram).then(() => {
+        resolve()
+      }).catch((err) => { reject(err) })
+    })
+  }
 
   // ------------------------------------------------------ TOOLCHANGER
 

@@ -121,13 +121,13 @@ tempCoolBtn.onClick(() => {
 })
 
 let tempPlot = new AutoPlot(360, 220, 420, 300)
-tempPlot.setHoldCount(200)
-tempPlot.setYDomain(0, 200)
+tempPlot.setHoldCount(500)
+//tempPlot.setYDomain(0, 100)
 tempPlot.redraw()
 
 let effortPlot = new AutoPlot(360, 530, 420, 200)
-effortPlot.setHoldCount(200)
-effortPlot.setYDomain(-10, 10)
+effortPlot.setHoldCount(500)
+//effortPlot.setYDomain(-10, 10)
 effortPlot.redraw()
 
 let tempLpBtn = new Button(240, 310, 104, 14, 'plot temp')
@@ -147,6 +147,7 @@ tempLpBtn.onClick(() => {
         tempPlot.redraw()
         return vm.getExtruderTempOutput()
       }).then((effort) => {
+        //console.log(effort)
         effortPlot.pushPt([tempLpCount, effort])
         effortPlot.redraw()
         setTimeout(poll, 200)
@@ -159,6 +160,27 @@ tempLpBtn.onClick(() => {
     tempLp = true 
     poll()
   }
+})
+
+let pVal = new TextInput(240, 340, 110, 20, '-0.1')
+let iVal = new TextInput(240, 370, 110, 20, '0.0')
+let dVal = new TextInput(240, 400, 110, 20, '0.1')
+
+let pidSetBtn = new Button(240, 430, 104, 14, 'set PID')
+pidSetBtn.onClick(() => {
+  let p = parseFloat(pVal.value)
+  let i = parseFloat(iVal.value)
+  let d = parseFloat(dVal.value)
+  if(Number.isNaN(p) || Number.isNaN() || Number.isNaN(d)){
+    pidSetBtn.bad("bad parse", 1000)
+    return
+  }
+  vm.setPIDTerms([p, i, d]).then(() => {
+    pidSetBtn.good("ok", 500)
+  }).catch((err) => {
+    console.error(err)
+    pidSetBtn.bad("err", 1000)
+  })
 })
 
 // -------------------------------------------------------- TOOLCHANGER 

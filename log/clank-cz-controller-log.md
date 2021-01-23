@@ -46,6 +46,17 @@
 
 Heater controllers now, notes in the heater circuit page, likely. 
 
+OK, bed and hotend are heating, tomorrow I just need to do these things:
+
+- add fan to hotend 
+- put heaters on the bus, two heater code modules / plots 
+- runtime heater plots / etc (?) 
+- gcode await for heaters, 
+- 'home' to z-up, 
+- test gcode ? 
+
+... then I can either call it, or get to work reading that loadcell, to see if I can make some spatial data plots, which would be cool, but also could be done for next month.
+
 ## 2021 01 22 
 
 Have today, tomorrow, sunday, to wrap this up. 
