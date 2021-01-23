@@ -42,6 +42,10 @@
 
 - what's stress test jogging: what's up with this "recieved ... for unregistered query... ?" business? polling is using network bandwidth, more stuff showing up... I think this is the desire to make a more-robust network. fuzz testing, flow control that rocks, etc. a challenge 
 
+## 2021 01 23 
+
+Heater controllers now, notes in the heater circuit page, likely. 
+
 ## 2021 01 22 
 
 Have today, tomorrow, sunday, to wrap this up. 

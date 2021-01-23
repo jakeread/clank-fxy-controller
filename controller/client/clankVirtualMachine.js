@@ -15,6 +15,8 @@ no warranty is provided, and users accept all liability.
 import { TS, PK, DK, AK, EP } from '../osapjs/core/ts.js'
 
 export default function ClankVM(osap, route) {
+
+  // ------------------------------------------------------ MOTION
   // ok: we make an 'endpoint' that will transmit moves,
   let moveEP = osap.endpoint()
   // add the machine head's route to it, 
@@ -98,7 +100,47 @@ export default function ClankVM(osap, route) {
     })
   }
 
-  // the toooolchanger, 
+  // ------------------------------------------------------ HEATER JUNK 
+
+  let tempModuleRoute = TS.route().portf(0).portf(1).end()
+
+  let tempSetEP = osap.endpoint()
+  tempSetEP.addRoute(tempModuleRoute, TS.endpoint(0, 0), 512)
+  this.setExtruderTemp = (temp) => {
+    return new Promise((resolve, reject) => {
+      let datagram = new Uint8Array(4)
+      TS.write('float32', temp, datagram, 0, true)
+      tempSetEP.write(datagram).then(() => {
+        resolve()
+      }).catch((err) => { reject(err) })
+    })
+  }
+
+  let tempQuery = osap.query(tempModuleRoute, TS.endpoint(0, 1), 512)
+  this.getExtruderTemp = () => {
+    return new Promise((resolve, reject) => {
+      tempQuery.pull().then((data) => {
+        let temp = TS.read('float32', data, 0, true)
+        resolve(temp)
+      }).catch((err) => { reject(err) })
+    })
+  }
+
+  let outputQuery = osap.query(tempModuleRoute, TS.endpoint(0, 2), 512)
+  this.getExtruderTempOutput = () => {
+    return new Promise((resolve, reject) => {
+      outputQuery.pull().then((data) => {
+        let effort = TS.read('float32', data, 0, true)
+        resolve(effort)
+      }).catch((err) => { reject(err) })
+    })
+  }
+
+  let tempPTermEP = osap.endpoint()
+  tempPTermEP.addRoute(tempModuleRoute, TS.endpoint(0, 3), 512)
+
+  // ------------------------------------------------------ TOOLCHANGER
+
   let tcServoEP = osap.endpoint()
   tcServoEP.addRoute(TS.route().portf(0).portf(1).busf(1, 1).end(), TS.endpoint(0, 0), 512)
 

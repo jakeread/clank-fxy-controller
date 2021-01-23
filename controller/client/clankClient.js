@@ -27,6 +27,7 @@ import { Input, Output } from '../osapjs/core/modules.js'
 import { GCodePanel } from '../osapjs/client/components/gCodePanel.js'
 import { AutoPlot } from '../osapjs/client/components/autoPlot.js'
 import { Button } from '../osapjs/client/interface/button.js'
+import { TextInput } from '../osapjs/client/interface/textInput.js'
 import { JogBox } from '../osapjs/client/components/jogBox.js'
 
 console.log("hello clank controller")
@@ -40,8 +41,12 @@ osap.description = "clank cz browser interface"
 // draws network, 
 let netrunner = new NetRunner(osap, 10, 760, false)
 
+// -------------------------------------------------------- THE VM
+
 // vm, 
 let vm = new ClankVM(osap)
+
+// -------------------------------------------------------- MOTION FEED
 
 // panel, 
 let gCodePanel = new GCodePanel(10, 10)
@@ -63,18 +68,17 @@ let jogBox = new JogBox(240, 10, vm)
 // this is... kind of buggy. button state sometimes straightforwards, sometimes callback hell 
 let posBtn = new Button(430, 10, 344, 14, 'pos')
 let posLp = false 
-let posTimeout = null 
 posBtn.onClick(() => {
   if(posLp){
     posLp = false 
-    if(posTimeout) clearTimeout(posTimeout)
     posBtn.good("stop", 500)
   } else {
     let poll = () => {
+      if(!posLp) return
       vm.getPos().then((pos) => {
         if(posLp){
           $(posBtn.elem).text(`X: ${pos.X.toFixed(2)}, Y: ${pos.Y.toFixed(2)}, Z: ${pos.Z.toFixed(2)}, E: ${pos.E.toFixed(2)}`)
-          posTimeout = setTimeout(poll, 50)  
+          setTimeout(poll, 50)  
         }
       }).catch((err) => {
         posLp = false
@@ -82,10 +86,82 @@ posBtn.onClick(() => {
         posBtn.bad("err", 1000)
       })
     }
-    poll()
     posLp = true 
+    poll()
   }
 })
+
+// -------------------------------------------------------- TEMP CONTROLLER 
+
+let tempSet = new TextInput(240, 220, 110, 20, '80')
+
+let tempSetBtn = new Button(240, 250, 104, 14, 'set temp')
+tempSetBtn.onClick(() => {
+  let temp = parseFloat(tempSet.value)
+  if(Number.isNaN(temp)){
+    tempSetBtn.bad("parse err", 1000)
+    return
+  }
+  vm.setExtruderTemp(temp).then(() => {
+    tempSetBtn.good("ok", 500)
+  }).catch((err) => {
+    console.error(err)
+    tempSetBtn.bad("err", 1000)
+  })
+})
+
+let tempCoolBtn = new Button(240, 280, 104, 14, 'cooldown')
+tempCoolBtn.onClick(() => {
+  vm.setExtruderTemp(0).then(() => {
+    tempCoolBtn.good("ok", 500)
+  }).catch((err) => {
+    console.error(err)
+    tempCoolBtn.bad("err", 500)
+  })
+})
+
+let tempPlot = new AutoPlot(360, 220, 420, 300)
+tempPlot.setHoldCount(200)
+tempPlot.setYDomain(0, 200)
+tempPlot.redraw()
+
+let effortPlot = new AutoPlot(360, 530, 420, 200)
+effortPlot.setHoldCount(200)
+effortPlot.setYDomain(-10, 10)
+effortPlot.redraw()
+
+let tempLpBtn = new Button(240, 310, 104, 14, 'plot temp')
+let tempLp = false 
+let tempLpCount = 0 
+tempLpBtn.onClick(() => {
+  if(tempLp){
+    tempLp = false 
+    tempLpBtn.good("stopped", 500)
+  } else {
+    let poll = () => {
+      if(!tempLp) return 
+      vm.getExtruderTemp().then((temp) => {
+        //console.log(temp)
+        tempLpCount ++
+        tempPlot.pushPt([tempLpCount, temp])
+        tempPlot.redraw()
+        return vm.getExtruderTempOutput()
+      }).then((effort) => {
+        effortPlot.pushPt([tempLpCount, effort])
+        effortPlot.redraw()
+        setTimeout(poll, 200)
+      }).catch((err) => {
+        tempLp = false 
+        console.error(err)
+        tempLpBtn.bad("err", 500)
+      })
+    }
+    tempLp = true 
+    poll()
+  }
+})
+
+// -------------------------------------------------------- TOOLCHANGER 
 
 let closedWidth = 2000
 let openWidth = 875
@@ -120,6 +196,8 @@ tcBtn.onClick(() => {
   }
 })
 $(tcBtn.elem).text('close tc')
+
+// -------------------------------------------------------- ENDPOINT TEST 
 
 let ep = osap.endpoint()
 ep.addRoute(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 0), 512)
