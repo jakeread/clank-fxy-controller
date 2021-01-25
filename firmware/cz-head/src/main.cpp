@@ -39,6 +39,7 @@ boolean smoothie_is_moving(void){
   return (smoothieRoll->actuators[0]->is_moving() 
         || smoothieRoll->actuators[1]->is_moving() 
         || smoothieRoll->actuators[2]->is_moving()
+        || smoothieRoll->actuators[3]->is_moving()
         || !smoothie_is_queue_empty());
 }
 
@@ -102,8 +103,22 @@ boolean onMoveData(uint8_t* data, uint16_t len){
 Endpoint* moveEP = osap->endpoint(onMoveData);
 
 boolean onPositionData(uint8_t* data, uint16_t len){
-  // don't do anything with this, but would use it to set 
-  return true;
+  // only if it's not moving, 
+  if(smoothie_is_moving()){
+    return false;
+  } else {
+    uint16_t ptr = 0;
+    chunk_float32 targetChunks[4];
+    targetChunks[0] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+    targetChunks[1] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+    targetChunks[2] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+    targetChunks[3] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+    // 
+    float set[4] = { targetChunks[0].f, targetChunks[1].f, targetChunks[2].f, targetChunks[3].f };
+    // ...
+    planner->set_position(set, 4);
+    return true;
+  }
 }
 Endpoint* posEP = osap->endpoint(onPositionData);
 

@@ -40,7 +40,34 @@
 
 ### Bugs
 
-- what's stress test jogging: what's up with this "recieved ... for unregistered query... ?" business? polling is using network bandwidth, more stuff showing up... I think this is the desire to make a more-robust network. fuzz testing, flow control that rocks, etc. a challenge 
+- stress test jogging: what's up with this "recieved ... for unregistered query... ?" business? polling is using network bandwidth, more stuff showing up... I think this is the desire to make a more-robust network. fuzz testing, flow control that rocks, etc. a challenge 
+- e-only moves don't get executed, 
+
+## 2021 01 24 
+
+Trying to button this up now, 
+
+OK, making the temp controller modular is kind of a trick... want modular code in the vm, and in the ui. 
+
+Have this wired up, now it's a pain to be looking at these DIP switches and de-muxing addresses. The rendered network is illegible because I'm drawing names overtop of other endpoints, so I could fix this, and append the bus-indice to each, so that I can do this visually.
+
+I'm also having, I think, bus-ack timeouts, probably lost acks at the endpoints... so I maybe do need to implement either a bus-return buffer (easier) or some other holding pattern. 
+
+Coming together slowly, had some bus drop ID collisions, more reason to want a pass-thru bus... simpler in some ways, less in others. Oy. Maybe network-test-boards are a next pick. 
+
+So, working in the heater code block for a minute, going to add a tx buffer to bus drops, I am timing out acks there, pretty obviously. Also need to add some code to turn on the 1st fan here, and add that to the hotend. 
+
+OK, this new code though, I suspect because of the loop, causes the steppers to perform poorly, I think because the DACs need to be re-written more often than they are... welp. That doesn't seem like it, so I'm a bit mystified. 
+
+Suppose I should try rolling back the osape submodule, building, see if that does it.
+
+This was just not designating the `F` on the SPU, whoops. All set now, and I think I'm ready to try to print something.
+
+Pretty sure extruder only moves are not being executed, so I'll have to fix that as well... or delete them? Might just go ahead and try anyways, to start. 
+
+Wew, I'm testing - and it's working, except these missed extruder-only moves really don't do us any good. Also, the z-motor crashed, so I'll up the current there (and should replace these all with closed loop anyways). 
+
+I think I'll make the push tonight to fix the extruder only moves, so that I can maybe get a cube out to show off tomorrow. Otherwise, I am nearly done with this trip around the dev cycle. 
 
 ## 2021 01 23 
 
