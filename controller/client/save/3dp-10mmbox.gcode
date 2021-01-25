@@ -29,6 +29,7 @@ M190 S75 ; wait for bed temp
 M109 S215 ; wait for extruder temp
 G28 W ; home all without mesh bed level
 G80 ; mesh bed leveling
+G1 X0.0 Y0.0 Z0.0 F1000.0
 G1 Y-3.0 F1000.0 ; go outside print area
 G92 E0.0
 G1 X60.0 E9.0 F1000.0 ; intro line

@@ -66,6 +66,16 @@ body {
 	transform: rotate(-90deg);
 }
 
+.nodenamebus {
+	font-size: 11px;
+	font-family: Helvetica, sans-serif;
+	width: 100px;
+	padding-left: 5px;
+	padding-top: 5px;
+	transform-origin: 0 0;
+	transform: translate(70px);
+}
+
 /* vPorts */
 
 .vPort {

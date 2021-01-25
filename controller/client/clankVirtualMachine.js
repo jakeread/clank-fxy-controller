@@ -13,6 +13,19 @@ no warranty is provided, and users accept all liability.
 */
 
 import { TS, PK, DK, AK, EP } from '../osapjs/core/ts.js'
+import TempVM from './tempVirtualMachine.js'
+
+/* bus ID (osap maps +1)
+X:    0 
+YL:   1
+YR:   2, term
+Z:    3 
+TCS:  4
+E:    5
+HE:   6
+LC:   7
+BED:  8
+*/
 
 export default function ClankVM(osap, route) {
 
@@ -23,7 +36,6 @@ export default function ClankVM(osap, route) {
   moveEP.addRoute(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 1), 512)
   // and set a long timeout,
   moveEP.setTimeoutLength(60000)
-
   // move like: { position: {X: num, Y: num, Z: num}, rate: num }
   this.addMoveToQueue = (move) => {
     // write the gram, 
@@ -36,7 +48,7 @@ export default function ClankVM(osap, route) {
     wptr += TS.write('float32', move.position.Y, datagram, wptr, true)
     wptr += TS.write('float32', move.position.Z, datagram, wptr, true)
     if (move.position.E) {
-      console.log(move.position.E)
+      //console.log(move.position.E)
       wptr += TS.write('float32', move.position.E, datagram, wptr, true)
     } else {
       wptr += TS.write('float32', 0, datagram, wptr, true)
@@ -48,6 +60,29 @@ export default function ClankVM(osap, route) {
       }).catch((err) => {
         reject(err)
       })
+    })
+  }
+
+  // to set the current position, 
+  let setPosEP = osap.endpoint()
+  setPosEP.addRoute(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 2), 512)
+  setPosEP.setTimeoutLength(10000)
+  this.setPos = (pos) => {
+    let wptr = 0 
+    let datagram = new Uint8Array(16)
+    wptr += TS.write('float32', pos.X, datagram, wptr, true)
+    wptr += TS.write('float32', pos.Y, datagram, wptr, true)
+    wptr += TS.write('float32', pos.Z, datagram, wptr, true)
+    if(pos.E){
+      wptr += TS.write('float32', pos.E, datagram, wptr, true)
+    } else {
+      wptr += TS.write('float32', 0, datagram, wptr, true)
+    }
+    // ship it 
+    return new Promise((resolve, reject) => {
+      setPosEP.write(datagram).then(() => {
+        resolve()
+      }).catch((err) => { reject(err) })
     })
   }
 
@@ -102,58 +137,14 @@ export default function ClankVM(osap, route) {
 
   // ------------------------------------------------------ HEATER JUNK 
 
-  let tempModuleRoute = TS.route().portf(0).portf(1).end()
-
-  let tempSetEP = osap.endpoint()
-  tempSetEP.addRoute(tempModuleRoute, TS.endpoint(0, 0), 512)
-  this.setExtruderTemp = (temp) => {
-    return new Promise((resolve, reject) => {
-      let datagram = new Uint8Array(4)
-      TS.write('float32', temp, datagram, 0, true)
-      tempSetEP.write(datagram).then(() => {
-        resolve()
-      }).catch((err) => { reject(err) })
-    })
-  }
-
-  let tempQuery = osap.query(tempModuleRoute, TS.endpoint(0, 1), 512)
-  this.getExtruderTemp = () => {
-    return new Promise((resolve, reject) => {
-      tempQuery.pull().then((data) => {
-        let temp = TS.read('float32', data, 0, true)
-        resolve(temp)
-      }).catch((err) => { reject(err) })
-    })
-  }
-
-  let outputQuery = osap.query(tempModuleRoute, TS.endpoint(0, 2), 512)
-  this.getExtruderTempOutput = () => {
-    return new Promise((resolve, reject) => {
-      outputQuery.pull().then((data) => {
-        let effort = TS.read('float32', data, 0, true)
-        resolve(effort)
-      }).catch((err) => { reject(err) })
-    })
-  }
-
-  let tempPIDTermsEP = osap.endpoint()
-  tempPIDTermsEP.addRoute(tempModuleRoute, TS.endpoint(0, 3), 512)
-  this.setPIDTerms = (vals) => {
-    return new Promise((resolve, reject) => {
-      let datagram = new Uint8Array(12)
-      TS.write('float32', vals[0], datagram, 0, true)
-      TS.write('float32', vals[1], datagram, 4, true)
-      TS.write('float32', vals[2], datagram, 8, true)
-      tempPIDTermsEP.write(datagram).then(() => {
-        resolve()
-      }).catch((err) => { reject(err) })
-    })
-  }
+  this.tvm = []
+  this.tvm[0] = new TempVM(osap, TS.route().portf(0).portf(1).busf(1,7).end())
+  this.tvm[1] = new TempVM(osap, TS.route().portf(0).portf(1).busf(1,9).end())
 
   // ------------------------------------------------------ TOOLCHANGER
 
   let tcServoEP = osap.endpoint()
-  tcServoEP.addRoute(TS.route().portf(0).portf(1).busf(1, 1).end(), TS.endpoint(0, 0), 512)
+  tcServoEP.addRoute(TS.route().portf(0).portf(1).busf(1, 4).end(), TS.endpoint(0, 0), 512)
 
   this.setTCServo = (micros) => {
     console.warn(micros)
