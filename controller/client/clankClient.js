@@ -59,6 +59,7 @@ gCodePanel.moveOut.attach(moveInput)
 moveInput.addListener((move) => {
   return new Promise((resolve, reject) => {
     move.rate = move.rate // ?
+    /*
     if(move.position.E > 0){
       window.eForward += move.position.E
     } else {
@@ -66,6 +67,7 @@ moveInput.addListener((move) => {
     }
     resolve()
     return
+    */
     vm.addMoveToQueue(move).then(() => {
       resolve()
     }).catch((err) => { reject(err) })
