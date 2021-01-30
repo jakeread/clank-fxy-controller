@@ -12,36 +12,72 @@
 
 ### Friday
 
-- setup your machine:
-  - step codes on YL, YR, Z, X, E, configurate 
-    - make sure SPU are clean,
-    - extruder SPU ? 
-  - network sweep / check things appear as they should, 
-- test this gcode, 
-  - XYZE / 
-- start heater dev: 
-  - PID endpoints, 
-  - query to plot temp, 
-  - run PID in JS first (?)
-    - 'loop' 100ms, 
-    - timeout on embedded side: if no action in 500ms, turn 'em off 
-
-### Saturday
-
-- wrap it up: make hotend flow plastic, see about laying some tracks... 
-
-### Sunday
-
-- that's it ? you can run printer codes now? fix your UI for long gcodes, 
-  - try a longer print, with a big nozzle for a more-even bed 
-  - secure the demo 
-- now, do the loadcell code, to read,
-- now, run some demo code & record (via query) times / temps / loadcell loads at some hz / maybe 100 (?) if possible. network / flow control will be stressed, bueno. use recording to draw data in heatmap of when-extruder-load-was-highest 
-
 ### Bugs
 
 - stress test jogging: what's up with this "recieved ... for unregistered query... ?" business? polling is using network bandwidth, more stuff showing up... I think this is the desire to make a more-robust network. fuzz testing, flow control that rocks, etc. a challenge 
-- e-only moves don't get executed, 
+- extruder moves: are scaled to volume, but moves are linear? 
+  - or simple over-extrusion? calculate the extruder SPU 
+  - do test prints w/ no retraction, to get basics straight
+  - add retraction, see if maybe direction misses, or something? 
+- during temp. polling, often find "bad walk for ptr key 1 at 0" - what's this? 
+
+### Motion Control Wishlist
+
+- per axis acceleration & top speed settings
+- G92 that works... shouldn't be too difficult 
+- to eliminate these mystery extrusions 
+- wth is this motor knock? 
+  - add bypass caps first, might be drivers giving up? 
+- what are these lost temperature packets?
+  - log them when i.e. bad ptr walks 
+- NIST goal is to have dense path data: at each poll, get position, extrusion rate, load, temps ... this means good querying, and probably in bus time-base. 
+
+### Motion Control Closed Loop Overhaul
+
+- CL & OL motors should work together, shouldn't all have to be
+- do Z first, avoid this knock 
+
+## 2021 01 30
+
+OK, back at it, want to identify this ongoing extrude bug. Probably should check my calculated length from gcode again, see if that lines up now that I'm not repeating moves. To recount, last time I was shipping 'F-Only' moves again, entirely. 
+
+## 2021 01 29 
+
+Back at it now, had a few days off. Have resolved extruder only moves (afaik), but am not able to test at the moment because it's -12 degs c outside and the garage is cold as ever. 
+
+I seem to have an overextrusion issue though, so I'll have to test that the old fasioned way / calibrating length of plastic on an extruder jog. 
+
+This is a bit confusing, the slicer reports about 430mm of extrusion (in length) and 1046mm^3 of volume. If I just add up all of the extruder moves, I see about 630mm of extrusion (just in the gcode). If I exclude e-only moves (which are retracts / resets) I see 731. 
+
+This is just on the gcode side, not even looking at firmware. 
+
+I removed retractions from the gcode (since it sounds like they are normally specified in linear mm, even where extrusion is spec'd in volumetric mm) and the thing is pretty clearly outputting volumetric E values, though it is *not* ticked in the settings. And when it is ticked, I see 300mm of extrude value, where I am expecting 162. 
+
+So some kind of insanity is going on here, I think I need the machine to really work it out though - I can maybe just guess at prefactors until it works. 
+
+I should perhaps try setting up per-axis accel here, as well, but am weary of running two tests at once. 
+
+Have:
+
+51.3 reported / 81.9 used (5mm cube) (62%)
+411 reported / 572 used (10mm cube) (71%)
+1353 reported / 1734 used (15mm cube) (77%)
+
+Yeah, just have to test this, I'm bringing the machine inside. 
+
+OK, found one real error: was extruding 150% too much, just based on extruder steps per unit. So, will see if I still have sloppy extrudes when I run this... first with no retraction at all. 
+
+Extrusion for the most part looks clean, but I see odd artefacts on corners, and I get the sense this is a g-code bug, not a firmware bug. 
+
+This might be my parsing, and yeah - indeed. On moves w/ just an F term, I was re-transmitting the whole move, causing it to execute some zero delta (motion) but positive delta (extrusion) moves. 
+
+![lr](2021-01-29_extrusion-sorting-01.jpg)
+
+I've also got this bug (flaw) where the z-motor gives up occasionally, dropping the bed. I think to fix this I want per-axis accel, low on the z, so it doesn't get whacked. Outside of that, I'm underpowered, but when I turn the current scaling up I get an odd 'knocking' sound out of the motors, so the driver needs to be interrogated a bit. I'll do one thing at a time, though. You can catch it *just* at the end of this clip:
+
+![drop](2021-01-29_clank-printing-drop.mp4)
+
+So... this extruder bug. I should interrogate the GCodes a bit more, seeming sus after that last bug. 
 
 ## 2021 01 24 
 
@@ -68,6 +104,10 @@ Pretty sure extruder only moves are not being executed, so I'll have to fix that
 Wew, I'm testing - and it's working, except these missed extruder-only moves really don't do us any good. Also, the z-motor crashed, so I'll up the current there (and should replace these all with closed loop anyways). 
 
 I think I'll make the push tonight to fix the extruder only moves, so that I can maybe get a cube out to show off tomorrow. Otherwise, I am nearly done with this trip around the dev cycle. 
+
+### E-Only Moves
+
+the code I'm missing in my smoothie roll is in robot.cpp from `962`. 
 
 ## 2021 01 23 
 

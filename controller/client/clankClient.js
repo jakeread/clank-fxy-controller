@@ -52,11 +52,20 @@ let vm = new ClankVM(osap)
 let gCodePanel = new GCodePanel(10, 10)
 
 // pipe moves 2 machine 
+window.eForward = 0
+window.eRetract = 0 
 let moveInput = new Input()
 gCodePanel.moveOut.attach(moveInput)
 moveInput.addListener((move) => {
   return new Promise((resolve, reject) => {
-    move.rate = move.rate
+    move.rate = move.rate // ?
+    if(move.position.E > 0){
+      window.eForward += move.position.E
+    } else {
+      window.eRetract += move.position.E
+    }
+    resolve()
+    return
     vm.addMoveToQueue(move).then(() => {
       resolve()
     }).catch((err) => { reject(err) })
@@ -95,7 +104,7 @@ let setStartBtn = new Button(360, 130, 94, 14, 'offset zero')
 setStartBtn.onClick(() => {
   vm.setPos({
     X: 0,
-    Y: 0, 
+    Y: 0,
     Z: 121.8,
     E: 0
   }).then(() => {
@@ -112,7 +121,7 @@ gotoZeroBtn.onClick(() => {
     rate: 600,
     position: {
       X: 0,
-      Y: 0, 
+      Y: 0,
       Z: 0,
       E: 0,
     }
@@ -127,7 +136,7 @@ gotoZeroBtn.onClick(() => {
 // -------------------------------------------------------- TEMP CONTROLLER 
 
 let tempController = (xPlace, yPlace, i, init) => {
-  let tvm = vm.tvm[i]  
+  let tvm = vm.tvm[i]
 
   let tempSet = new TextInput(xPlace, yPlace, 110, 20, `${init}`)
 

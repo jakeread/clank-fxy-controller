@@ -69,34 +69,58 @@ void Planner::set_position(float* pos, uint8_t n_motors){
 }
 
 // motion packet -> block 
+// see Robot.CPP ln 962, append_milestone, to see what OG smoothie does in similar situation 
 void Planner::append_move( float* target, uint8_t n_motors, float rate, float delta_e){
-    // do increments on last milestone appended, checking if moves are abs. or inc. 
-    // ... 
+    // target are XYZ positions to hit (not deltas)
+    // rate is in mm/sec 
+    // delta_e is extruder increment to take, 
+    // actuator coordinates are a num-motors-wide float array, 
+    // see smoothie-config for, 
     ActuatorCoordinates feedPos;
     ActuatorCoordinates deltas;
+    float sos = 0.0F;
+    // do deltas for XYZ, and pull sum of squares, 
     for(uint8_t m = 0; m < 3; m ++){
         feedPos[m] = target[m]; // - last_position[m];
         deltas[m] = target[m] - last_position[m];
+        //sysError("delta " + String(m) + " " + String(deltas[m]));
         last_position[m] = target[m];
+        sos += powf(deltas[m], 2);
     }
-    // do delta, for E ... 
+    // do delta for E, 
     last_position[3] += delta_e;
     feedPos[3] = last_position[3];
-    // calc sum of squares on increments 
-    float sos = powf(deltas[0], 2) + powf(deltas[1], 2) + powf(deltas[2], 2);
-    float dist = sqrtf(sos);
-    float unit[3] = {deltas[0] / dist, deltas[1] / dist, deltas[2] / dist};
+    // the rest is different if we have an e-only move or not, 
+    float dist = 0.0F;
+    float unit[3] = { 0.0F, 0.0F, 0.0F };
+    boolean e_only;
+    if(deltas[0] == 0 && deltas[1] == 0 && deltas[2] == 0){
+        // e-only move, 
+        e_only = true;
+        dist = fabsf(delta_e);
+        sysError("e-only " + String(dist));
+    } else {
+        // move has real travel, 
+        e_only = false;
+        dist = sqrtf(sos);
+        for(uint8_t i = 0; i < 3; i ++){
+            unit[i] = deltas[i] / dist;            
+        }
+    }
     // zero rates are rejected 
     if(rate < 0.0001F){
         sysError("rejecting small rate");
         return;
+    } else if (dist < 0.00001F){
+        sysError("rejecting small distance " + String(dist));
+        return;
     }
-    // very small moves are rejected 
-    if(dist < 0.00001F) return;
-    // append it 
-    // would also do: set accel for lowest in move (with per motor accel) 
-    // and set speed for lowest max. speed per motor 
-    append_block(feedPos, n_motors, rate, dist, unit, SR_ACCEL, 1.0F, true);
+    // TODO: add per-axis speed & accel limits, 
+    // ...
+    // append this, 
+    // distance is XYZ delta, or length of E, if e-only move, 
+    // unit is nullptr if e-only, 
+    append_block(feedPos, n_motors, rate, dist, e_only ? nullptr : unit, SR_ACCEL, 1.0F, true);
                //feedPos, 3, 100, dist, unit, 100, s_value, true
 }
 
