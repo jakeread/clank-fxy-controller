@@ -20,6 +20,12 @@ class StepInterface {
         void set_position(float mm);
         float get_last_milestone_mm(void);
 
+        // settings
+        float get_max_rate(void);
+        void set_max_rate(float rate);
+        float get_accel(void);
+        void set_accel(float acc);
+
         boolean step(void);
         void set_direction(boolean dir);
         void start_moving(void);
@@ -35,6 +41,8 @@ class StepInterface {
         volatile boolean direction = false;
         volatile boolean moving = false;
 
+        float max_rate = 100.0F; // in mm/sec ? 
+        float accel = 100.0F; // in mm/sec/sec 
         float steps_per_mm = 400.0F; // for everyone: this is a hack... actually we send floating posns to steppers, who deal with this config 
         float mm_per_step = 1 / steps_per_mm;
         int32_t last_milestone_steps = 0;

@@ -58,6 +58,7 @@ void OSAP::handleAppPacket(uint8_t *pck, uint16_t ptr, pckm_t* pckm){
 unsigned long wait = 500;
 unsigned long last = millis();
 
+// ENDPOINT 0 
 boolean onTestData(uint8_t* data, uint16_t len){
   // test test, 
   unsigned long now = millis();
@@ -71,6 +72,7 @@ boolean onTestData(uint8_t* data, uint16_t len){
 Endpoint* testEP = osap->endpoint(onTestData);
 uint8_t qtest[6] = { 12, 24, 48, 96, 48, 24 };
 
+// ENDPOINT 1
 boolean onMoveData(uint8_t* data, uint16_t len){
   // can we load it?
   if(!conveyor->is_queue_full()){
@@ -102,6 +104,7 @@ boolean onMoveData(uint8_t* data, uint16_t len){
 }
 Endpoint* moveEP = osap->endpoint(onMoveData);
 
+// ENDPOINT 2
 boolean onPositionData(uint8_t* data, uint16_t len){
   // only if it's not moving, 
   if(smoothie_is_moving()){
@@ -122,12 +125,14 @@ boolean onPositionData(uint8_t* data, uint16_t len){
 }
 Endpoint* posEP = osap->endpoint(onPositionData);
 
+// ENDPOINT 3
 boolean onMotionEP(uint8_t* data, uint16_t len){
   // this is also just a query for the time being ... clear it, 
   return true;
 }
 Endpoint* motionEP = osap->endpoint(onMotionEP);
 
+// ENDPOINT 4 
 boolean onWaitTimeEP(uint8_t* data, uint16_t len){
   // writes a wait time for the queue: handy to shorten this up for jogging 
   uint32_t ms;
@@ -137,6 +142,42 @@ boolean onWaitTimeEP(uint8_t* data, uint16_t len){
   return true;
 }
 Endpoint* waitTimeEP = osap->endpoint(onWaitTimeEP);
+
+// ENDPOINT 5
+boolean onAccelsEP(uint8_t* data, uint16_t len){
+  // should be 4 floats: new accel values per-axis 
+  uint16_t ptr = 0;
+  chunk_float32 targetChunks[4];
+  targetChunks[0] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+  targetChunks[1] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+  targetChunks[2] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+  targetChunks[3] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+  // they're in here 
+  for(uint8_t m = 0; m < SR_NUM_MOTORS; m ++){
+    smoothieRoll->actuators[m]->set_accel(targetChunks[m].f);
+  }
+  // assuming that went well, 
+  return true;
+}
+Endpoint* accelSettingEP = osap->endpoint(onAccelsEP);
+
+// ENDPOINT 6
+boolean onRatesEP(uint8_t* data, uint16_t len){
+  // should be 4 floats: new accel values per-axis 
+  uint16_t ptr = 0;
+  chunk_float32 targetChunks[4];
+  targetChunks[0] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+  targetChunks[1] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+  targetChunks[2] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+  targetChunks[3] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+  // they're in here 
+  for(uint8_t m = 0; m < SR_NUM_MOTORS; m ++){
+    smoothieRoll->actuators[m]->set_max_rate(targetChunks[m].f);
+  }
+  // assuming that went well, 
+  return true;
+}
+Endpoint* rateSettingEP = osap->endpoint(onRatesEP);
 
 // -------------------------------------------------------- SETUP 
 

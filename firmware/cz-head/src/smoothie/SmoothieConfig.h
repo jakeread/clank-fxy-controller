@@ -6,7 +6,8 @@
 #define SR_NUM_MOTORS 4
 #define SR_NUM_MOTION_AXES 3
 
-#define SR_ACCEL 400.0F
+// default accel 
+#define SR_DEFAULT_ACCEL 5000.0F
 
 // Keep MAX_ROBOT_ACTUATORS as small as practical it impacts block size and therefore free memory.
 const size_t k_max_actuators = SR_NUM_MOTORS;

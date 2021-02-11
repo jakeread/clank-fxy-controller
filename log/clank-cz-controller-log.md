@@ -25,7 +25,11 @@
 
 - per axis acceleration & top speed settings
 - G92 that works... shouldn't be too difficult 
-- to eliminate these mystery extrusions 
+- remote disable motors
+- remote set motor current 
+- motion control vm sub-module .js 
+- still doesn't home, there, lad 
+- bed probe / kinematic corrections 
 - wth is this motor knock? 
   - add bypass caps first, might be drivers giving up? 
 - what are these lost temperature packets?
@@ -37,9 +41,63 @@
 - CL & OL motors should work together, shouldn't all have to be
 - do Z first, avoid this knock 
 
+## 2021 02 11 
+
+Have been iterating hardware to get ready for toolchangers again. Here's my current burn-down list that I am telling myself I will finish before I get back to making stepper-servo controllers work:
+
+- do per-axis accel & speed limits
+- per-axis accels / per axis max rates are osap endpoints (triplets) 
+- motor currents go virtual, vmachine sets on 'init'
+- vmachine has 'init' for these configs 
+- tool swap posn's & hardware debug 
+  - demo this / take video ... poke something 
+- loadcell endpoint readout
+- demo is either print-the-shape and break it, or it's print-anything-and-record-data 
+- no probing yet: just print a cube while polling loadcell, temp, and flowrate (?), with timestamps. draw a map or something... you're done for NIST, go do motion control 
+
+So, on with it. Have speed / accel limits, want to test / wrap in UI. 
+
+OK, per-axis accel and speed limits seem to work... want also motor currents, and then some 'startup / OK' term to run at machine init. 
+
+For motors... I have treated these as pretty dumb objects so far, but now that they are on the bus I should be able to do a remote reach-in for SPU, axis pick, and current. That's... pretty rad. I guess I want a kind of 'virtual motor' class then as well. Vey. 
+
+Alright, wrote a lot of lines... I think I am just up to flashing stepper firmwares - now updated so I won't have to do this again to reset SPU / axis etc (bless).... and then having a kind of 'vm init' switch that should reset everything pretty well. Then I'm into tool swapping, I think, god bless? 
+
+Great, that works, nice to have remote settings. Next is tool changing... then I'm into loadcell reading / the loop-poll / display during print. 
+
 ## 2021 01 30
 
-OK, back at it, want to identify this ongoing extrude bug. Probably should check my calculated length from gcode again, see if that lines up now that I'm not repeating moves. To recount, last time I was shipping 'F-Only' moves again, entirely. 
+OK, back at it, want to identify this ongoing extrude bug. Probably should check my calculated length from gcode again, see if that lines up now that I'm not repeating moves. To recount, last time I was shipping 'F-Only' moves again, entirely.   
+
+Yeah, I still see 500mm of extrusion where the slicer reports 400. I suspect this is still on layer changes... and I think this is because I am using stateful 'position' to parse out e-moves... yep, that was also present. I'll test again. 
+
+Alright, nice cubes now
+
+![cube](2021-01-30_extrusion-ok.jpg)
+
+The big goal here is to see if I can make these modular control systems into workhorses: bug-free, tested, reliable, useful. I've a list going for this... there's some near term goals, like adding G92 (just my vm.setPos() hooked up to the gcode interpreter), remote disabling motors, remote setting motor current, etc... features. The longer term goal involves things like (1) putting an offline controller on a raspberry pi, to pop up a display / load jobs / etc, (2) doing a big motion control overhaul to include closed loop motors, or (3) seeing about a python controller on a headless raspberry pi (or similar) etc. There's also the OSAP development cycle: I want to re-assemble system state programmatically from something like a 'virtual machine' to i.e. auto-load in motor axis picks, SPU, current settings, etc... and have typed endpoints, and a graphic language for assembly... and I should keep pushing / seeing about code submodules. 
+
+So, that's a lot. I think that I can do much of this without changing anything too radically yet, so I will keep on towards the NIST goal of tuning / searching for layer adhesion perfection. This means I have a few things to do short-hand:
+
+- yes, 'finish' the VM:
+  - per axis acceleration and speed limits, and JS handles for them 
+  - wait for heatup,
+  - remote set motor currents, 
+  - homing would be nice, 
+  - make a VM code submodule, a-la the temp, 
+- make a bed probe / pull probe loadcell module 
+  - CAD,
+  - loadcell firmware, 
+  - probe test, pull test 
+- fix the bed hardware
+  - where did the heater go wrong?
+  - how to hotswap beds? latches? 
+  - bed presence check w/ current sense?
+  - better than the RTD? 
+
+After all of this, I can make my way towards (1) printing with a continuous poll for temps / pressures, etc, and / or (2) closed loop simplex search on the bed. 
+
+The thing that excites me a bit more than that is the toolchanger, and hybrid processes, and a closed loop / auto-accel-discovery motion control platform. Some of those might warrant another OSAP development cycle, so I might save them for later. 
 
 ## 2021 01 29 
 

@@ -53,7 +53,7 @@ let gCodePanel = new GCodePanel(10, 10)
 
 // pipe moves 2 machine 
 window.eForward = 0
-window.eRetract = 0 
+window.eRetract = 0
 let moveInput = new Input()
 gCodePanel.moveOut.attach(moveInput)
 moveInput.addListener((move) => {
@@ -218,7 +218,7 @@ let tempController = (xPlace, yPlace, i, init) => {
     let p = parseFloat(pVal.value)
     let i = parseFloat(iVal.value)
     let d = parseFloat(dVal.value)
-    if (Number.isNaN(p) || Number.isNaN() || Number.isNaN(d)) {
+    if (Number.isNaN(p) || Number.isNaN(i) || Number.isNaN(d)) {
       pidSetBtn.bad("bad parse", 1000)
       return
     }
@@ -234,6 +234,107 @@ let tempController = (xPlace, yPlace, i, init) => {
 tempController(240, 190, 0, 220)
 tempController(240, 590, 1, 60)
 
+// -------------------------------------------------------- MOTION SETTINGS
+// todo: should bundle with jog, position query, etc ? or get on with other work 
+
+let setRatesBtn = new Button(790, 10, 84, 24, 'set acc & max fr')
+let accText = new Button(790, 50, 84, 14, 'mm/sec^2')
+let xAccVal = new TextInput(790, 80, 90, 20, '300')
+let yAccVal = new TextInput(790, 110, 90, 20, '300')
+let zAccVal = new TextInput(790, 140, 90, 20, '50')
+let eAccVal = new TextInput(790, 170, 90, 20, '900')
+
+let rateText = new Button(790, 200, 84, 14, 'mm/min')
+let xRateVal = new TextInput(790, 230, 90, 20, '12000')
+let yRateVal = new TextInput(790, 260, 90, 20, '12000')
+let zRateVal = new TextInput(790, 290, 90, 20, '1000')
+let eRateVal = new TextInput(790, 320, 90, 20, '60000')
+
+let setupMotion = () => {
+  // accel 
+  let aVals = {
+    X: parseFloat(xAccVal.value),
+    Y: parseFloat(yAccVal.value),
+    Z: parseFloat(zAccVal.value),
+    E: parseFloat(eAccVal.value)
+  }
+  for (let v in aVals) {
+    if (Number.isNaN(aVals[v])) { console.error('bad parse for float', v); return }
+  }
+  // rates
+  let rVals = {
+    X: parseFloat(xRateVal.value),
+    Y: parseFloat(yRateVal.value),
+    Z: parseFloat(zRateVal.value),
+    E: parseFloat(eRateVal.value)
+  }
+  for (let v in rVals) {
+    if (Number.isNaN(rVals[v])) { console.error('bad parse for float', r); return }
+  }
+  // network 
+  return new Promise((resolve, reject) => {
+    vm.setAccels(aVals).then(() => {
+      return vm.setRates(rVals)
+    }).then(() => {
+      resolve()
+    }).catch((err) => { reject(err) })
+  })
+}
+
+setRatesBtn.onClick(() => {
+  setupMotion().then(() => {
+    setRatesBtn.good("ok", 500)
+  }).catch((err) => {
+    console.error(err)
+    setRatesBtn.bad("err", 500)
+  })
+})
+
+// -------------------------------------------------------- MOTOR SETTINGS
+
+let setMotorsBtn = new Button(790, 360, 84, 14, 'motor setup')
+setMotorsBtn.onClick(() => {
+  vm.initMotors().then(() => {
+    setMotorsBtn.good("ok", 500)
+  }).catch((err) => {
+    console.error(err)
+    setMotorsBtn.bad("err", 500)
+  })
+})
+
+let disableMotorsBtn = new Button(790, 390, 84, 14, 'disable')
+disableMotorsBtn.onClick(() => {
+  vm.disableMotors().then(() => {
+    disableMotorsBtn('ok', 500)
+  }).catch((err) => {
+    console.error(err)
+    disableMotorsBtn.bad("err", 500)
+  })
+})
+
+let enableMotorsBtn = new Button(790, 420, 84, 14, 'enable')
+enableMotorsBtn.onClick(() => {
+  vm.enableMotors().then(() => {
+    enableMotorsBtn('ok', 500)
+  }).catch((err) => {
+    console.error(err)
+    enableMotorsBtn.bad("err", 500)
+  })
+})
+
+// -------------------------------------------------------- MACHINE INIT
+
+let initMachineBtn = new Button(470, 130, 84, 44, 'init vm')
+initMachineBtn.onClick(() => {
+  setupMotion().then(() => {
+    return vm.initMotors()
+  }).then(() => {
+    initMachineBtn.good("ok", 500)
+  }).catch((err) => {
+    console.error(err)
+    initMachineBtn.bad("err", 500)
+  })
+})
 
 // -------------------------------------------------------- TOOLCHANGER 
 

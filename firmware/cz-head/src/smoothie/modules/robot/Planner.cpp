@@ -115,12 +115,37 @@ void Planner::append_move( float* target, uint8_t n_motors, float rate, float de
         sysError("rejecting small distance " + String(dist));
         return;
     }
-    // TODO: add per-axis speed & accel limits, 
-    // ...
+    // now pick an acceleration based on per-axis limits 
+    // use default acceleration to start with
+    float acceleration = SR_DEFAULT_ACCEL;
+    float isecs = rate / dist;
+    // check per-actuator speed limits
+    for (size_t actuator = 0; actuator < n_motors; actuator++) {
+        float d = fabsf(deltas[actuator]);
+        if(d == 0) continue; // no movement for this actuator
+
+        float actuator_rate = d * isecs;
+        if (actuator_rate > smoothieRoll->actuators[actuator]->get_max_rate()) {
+            rate *= (smoothieRoll->actuators[actuator]->get_max_rate() / actuator_rate);
+            isecs = rate / dist;
+        }
+
+        // adjust acceleration to lowest found, for now just primary axis unless it is an auxiliary move
+        // TODO we may need to do all of them, check E won't limit XYZ.. it does on long E moves, but not checking it could exceed the E acceleration.
+        if(e_only || actuator <= 2) {
+            float ma =  smoothieRoll->actuators[actuator]->get_accel(); // in mm/sec²
+            if(!isnan(ma)) {  // if axis does not have acceleration set then it uses the default_acceleration
+                float ca = fabsf((d/dist) * acceleration);
+                if (ca > ma) {
+                    acceleration *= ( ma / ca );
+                }
+            }
+        }
+    }
     // append this, 
     // distance is XYZ delta, or length of E, if e-only move, 
     // unit is nullptr if e-only, 
-    append_block(feedPos, n_motors, rate, dist, e_only ? nullptr : unit, SR_ACCEL, 1.0F, true);
+    append_block(feedPos, n_motors, rate, dist, e_only ? nullptr : unit, acceleration, 1.0F, true);
                //feedPos, 3, 100, dist, unit, 100, s_value, true
 }
 

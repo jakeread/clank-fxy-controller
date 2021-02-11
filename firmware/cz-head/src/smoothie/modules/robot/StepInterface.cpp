@@ -32,6 +32,22 @@ float StepInterface::get_last_milestone_mm(void){
     return last_milestone_mm;
 }
 
+float StepInterface::get_max_rate(void){
+    return max_rate;
+}
+
+void StepInterface::set_max_rate(float rate){
+    max_rate = fabsf(rate);
+}
+
+float StepInterface::get_accel(void){
+    return accel;
+}
+
+void StepInterface::set_accel(float acc){
+    accel = fabsf(acc);
+}
+
 boolean StepInterface::step(void){
     // upd8 position, 
     if(direction){
