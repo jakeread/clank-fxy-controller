@@ -41,6 +41,19 @@
 - CL & OL motors should work together, shouldn't all have to be
 - do Z first, avoid this knock 
 
+## 2021 02 12 
+
+I clearly want to be done with this phase, but am having small bugs to do with timing details / asynchronousness in the motion queue. 
+
+Sorted those by introducing some delays / adjusting the wait-for-motion time in the remote buffer. Am seeing also spurious timeouts in the system though - I am really starting to tax the bus and asking the network to work all the time... It might be time to do a roll on OSAP subsystems to improve this performance. 
+
+- init on wake-up somehow ? 
+- make TC with per-tool setup / abstracted
+- pickup / put-down buttons 
+- test w/ one tool
+- assy t2, test swap, film, done here for now 
+- CAD update for probe, print 
+
 ## 2021 02 11 
 
 Have been iterating hardware to get ready for toolchangers again. Here's my current burn-down list that I am telling myself I will finish before I get back to making stepper-servo controllers work:
@@ -64,6 +77,8 @@ For motors... I have treated these as pretty dumb objects so far, but now that t
 Alright, wrote a lot of lines... I think I am just up to flashing stepper firmwares - now updated so I won't have to do this again to reset SPU / axis etc (bless).... and then having a kind of 'vm init' switch that should reset everything pretty well. Then I'm into tool swapping, I think, god bless? 
 
 Great, that works, nice to have remote settings. Next is tool changing... then I'm into loadcell reading / the loop-poll / display during print. 
+
+... ok, nothing glamorous today. have started on TC macros, will flesh out tomorrow with big morning brain energy. eternal recurrence of 'knocking' motor controller, should fix eventually. 
 
 ## 2021 01 30
 

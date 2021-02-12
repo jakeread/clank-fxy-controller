@@ -338,12 +338,10 @@ initMachineBtn.onClick(() => {
 
 // -------------------------------------------------------- TOOLCHANGER 
 
-let closedWidth = 2000
-let openWidth = 875
 let tcBtn = new Button(430, 40, 94, 14, 'tc')
 tcBtn.onClick(() => {
   if ($(tcBtn.elem).text() == 'close tc') {
-    vm.setTCServo(openWidth).then(() => {
+    vm.closeTC().then(() => {
       tcBtn.good('ok', 500)
       setTimeout(() => {
         $(tcBtn.elem).text('open tc')
@@ -356,7 +354,7 @@ tcBtn.onClick(() => {
       }, 500)
     })
   } else {
-    vm.setTCServo(closedWidth).then(() => {
+    vm.openTC().then(() => {
       tcBtn.good('ok', 500)
       setTimeout(() => {
         $(tcBtn.elem).text('close tc')
@@ -371,6 +369,26 @@ tcBtn.onClick(() => {
   }
 })
 $(tcBtn.elem).text('close tc')
+
+let dropBtn = new Button(430, 70, 94, 14, 'drop T0')
+dropBtn.onClick(() => {
+  vm.dropTool(0).then(() => {
+    dropBtn.good("ok", 500)
+  }).catch((err) => { 
+    console.error(err)
+    dropBtn.bad("err", 500)
+  })
+})
+
+let pickupBtn = new Button(430, 100, 94, 14, 'pickup T0')
+pickupBtn.onClick(() => {
+  vm.pickTool(0).then(() => {
+    pickupBtn.good("ok", 500)
+  }).catch((err) => {
+    console.error(err)
+    pickupBtn.bad("err", 500)
+  })
+})
 
 // -------------------------------------------------------- ENDPOINT TEST 
 

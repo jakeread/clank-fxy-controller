@@ -212,14 +212,14 @@ export default function ClankVM(osap, route) {
     E: new MotorVM(osap, TS.route().portf(0).portf(1).busf(1, 6).end()),
   }
 
-  let motorCurrents = [0.5, 0.5, 0.5, 0.7, 0.5]
+  let motorCurrents = [0.5, 0.5, 0.5, 0.5, 0.5]
   this.setMotorCurrents = async () => {
     try {
       await this.motors.X.setCScale(motorCurrents[0])
       await this.motors.YL.setCScale(motorCurrents[1])
       await this.motors.YR.setCScale(motorCurrents[2])
       await this.motors.Z.setCScale(motorCurrents[3])
-      await this.motors.E.setCScale(motorCurrents[4])
+      //await this.motors.E.setCScale(motorCurrents[4])
     } catch (err) {
       console.error('bad motor current set')
       throw err
@@ -279,6 +279,7 @@ export default function ClankVM(osap, route) {
       console.error('bad z motor init')
       throw err
     }
+    /*
     try {
       await this.motors.E.setAxisPick(3)
       await this.motors.E.setAxisInversion(true)
@@ -287,22 +288,16 @@ export default function ClankVM(osap, route) {
       console.error('bad e motor init')
       throw err
     }
+    */
     await this.setMotorCurrents()
   }
-
-  // ------------------------------------------------------ HEATER JUNK 
-
-  this.tvm = []
-  this.tvm[0] = new TempVM(osap, TS.route().portf(0).portf(1).busf(1, 7).end())
-  this.tvm[1] = new TempVM(osap, TS.route().portf(0).portf(1).busf(1, 9).end())
 
   // ------------------------------------------------------ TOOLCHANGER
 
   let tcServoEP = osap.endpoint()
-  tcServoEP.addRoute(TS.route().portf(0).portf(1).busf(1, 4).end(), TS.endpoint(0, 0), 512)
+  tcServoEP.addRoute(TS.route().portf(0).portf(1).busf(1, 5).end(), TS.endpoint(0, 0), 512)
 
   this.setTCServo = (micros) => {
-    console.warn(micros)
     let wptr = 0
     let datagram = new Uint8Array(4)
     // write micros 
@@ -310,11 +305,126 @@ export default function ClankVM(osap, route) {
     // do the shipment
     return new Promise((resolve, reject) => {
       tcServoEP.write(datagram).then(() => {
+        console.warn('tc set', micros)
         resolve()
       }).catch((err) => {
         reject(err)
       })
     })
   }
+
+  this.openTC = () => {
+    return this.setTCServo(2000)
+  }
+
+  this.closeTC = () => {
+    return this.setTCServo(875)
+  }
+
+  // ------------------------------------------------------ TOOL CHANGING
+
+  // tool localization for put-down & pickup, tool statefulness, 
+  // from back left 0,0 
+  // put-down HE at (23.8, -177) -> (23.8, -222.6) -> release -> (-17.8, -208.6) clear -> (-17.8, -183)
+  // { position: {X: num, Y: num, Z: num}, rate: num }
+
+  let delay = (ms) => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => { resolve() }, ms)
+    })
+  }
+
+  this.delta = async (move, rate) => {
+    try {
+      if (!rate) rate = 6000
+      await this.setWaitTime(1)
+      await delay(5)
+      await this.awaitMotionEnd()
+      let cp = await this.getPos()
+      console.log('current', cp)
+      await this.addMoveToQueue({
+        position: { X: cp.X + move[0], Y: cp.Y + move[1], Z: cp.Z + move[2] },
+        rate: rate
+      })
+      await delay(5)
+      await this.awaitMotionEnd()
+      await this.setWaitTime(100)
+    } catch (err) {
+      console.error('arising during delta')
+      throw err
+    }
+  }
+
+  this.goto = async (pos, rate) => {
+    try {
+      if (!rate) rate = 6000
+      // set remote queue-wait-time 
+      await this.setWaitTime(1)
+      await delay(5)
+      // wait for the stop 
+      await this.awaitMotionEnd()
+      await this.addMoveToQueue({
+        position: { X: pos[0], Y: pos[1], Z: pos[2], E: 0 },
+        rate: rate
+      })
+      await delay(5)
+      await this.awaitMotionEnd()
+      await this.setWaitTime(100)
+    } catch (err) {
+      console.error('during goto')
+      throw err
+    }
+  }
+
+  let tools = [{
+    pickX: 16.8,
+    pickY: -177,
+    plunge: -45.6
+  }]
+
+  this.dropTool = async (num) => {
+    try {
+      await this.awaitMotionEnd()
+      await this.closeTC()
+      let cp = await this.getPos()
+      await this.goto([tools[num].pickX, tools[num].pickY, cp.Z])
+      console.warn('done setup')
+      await this.delta([0, tools[num].plunge, 0])
+      await this.openTC()
+      await delay(250)
+      console.warn('tc open')
+      await this.delta([-6, 10, 0])
+      await this.delta([0, 50, 0])
+      await this.goto([tools[num].pickX, tools[num].pickY, cp.Z])
+    } catch (err) {
+      console.error(`at T${num} drop`)
+      throw err
+    }
+  }
+
+  this.pickTool = async (num) => {
+    try {
+      await this.awaitMotionEnd()
+      await this.openTC()
+      let cp = await this.getPos()
+      await this.goto([tools[num].pickX, tools[num].pickY, cp.Z])
+      await this.delta([-6, 0, 0])
+      await this.delta([0, tools[num].plunge + 10, 0])
+      await this.delta([6, -10, 0])
+      await this.closeTC()
+      await delay(250)
+      await this.delta([0, -tools[num].plunge, 0])
+      await delay(250)
+    } catch (err) {
+      console.error(`at T${num} pick`)
+      throw err
+    }
+  }
+
+  // ------------------------------------------------------ HEATER JUNK 
+
+  this.tvm = []
+  this.tvm[0] = new TempVM(osap, TS.route().portf(0).portf(1).busf(1, 7).end())
+  this.tvm[1] = new TempVM(osap, TS.route().portf(0).portf(1).busf(1, 9).end())
 
 }
