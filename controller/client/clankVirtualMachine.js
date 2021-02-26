@@ -15,6 +15,7 @@ no warranty is provided, and users accept all liability.
 import { TS, PK, DK, AK, EP } from '../osapjs/core/ts.js'
 import TempVM from './tempVirtualMachine.js'
 import MotorVM from './motorVirtualMachine.js'
+import LoadVM from './loadcellVirtualMachine.js'
 
 /* bus ID (osap maps +1)
 X:    0 
@@ -426,5 +427,9 @@ export default function ClankVM(osap, route) {
   this.tvm = []
   this.tvm[0] = new TempVM(osap, TS.route().portf(0).portf(1).busf(1, 7).end())
   this.tvm[1] = new TempVM(osap, TS.route().portf(0).portf(1).busf(1, 9).end())
+
+  // ------------------------------------------------------ LOADCELL 
+
+  this.loadcell = new LoadVM(osap, TS.route().portf(0).portf(1).busf(1, 8).end())
 
 }
