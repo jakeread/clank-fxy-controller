@@ -14,22 +14,18 @@ no warranty is provided, and users accept all liability.
 
 'use strict'
 
-import OSAP from '../osapjs/core/osap.js'
-import { TS, PK, DK, AK, EP } from '../osapjs/core/ts.js'
-import NetRunner from '../osapjs/client/netrunner/osap-render.js'
+import OSAP from '../osapjs/core/osapRoot.js'
+import { PK, TS, VT, EP } from '../osapjs/core/ts.js'
 
 // the clank 'virtual machine'
-import ClankVM from './clankVirtualMachine.js'
+import ClankVM from './vms/clankVirtualMachine.js'
 
-// sort of stand-alone prototype input / output system for JS... it doth not network
-import { Input, Output } from '../osapjs/core/modules.js'
-
+import Grid from '../osapjs/client/interface/grid.js' // main drawing API 
 import { GCodePanel } from '../osapjs/client/components/gCodePanel.js'
 import { AutoPlot } from '../osapjs/client/components/autoPlot.js'
 import { Button } from '../osapjs/client/interface/button.js'
 import { TextInput } from '../osapjs/client/interface/textInput.js'
 import { JogBox } from '../osapjs/client/components/jogBox.js'
-
 import { SaveFile } from '../osapjs/client/utes/saveFile.js'
 
 console.log("hello clank controller")
@@ -40,8 +36,7 @@ let osap = new OSAP()
 osap.name = "clank client"
 osap.description = "clank cz browser interface"
 
-// draws network, 
-let netrunner = new NetRunner(osap, 10, 760, false)
+let grid = new Grid()
 
 // -------------------------------------------------------- THE VM
 
@@ -492,68 +487,6 @@ loadBtn.onClick(() => {
   }
   loadLp = true
   lp()
-})
-
-// -------------------------------------------------------- ENDPOINT TEST 
-
-let ep = osap.endpoint()
-ep.addRoute(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 0), 512)
-
-let epTestBtn = new Button(240, 130, 104, 14, 'ep test')
-epTestBtn.onClick(() => {
-  testRun(10).then((res) => {
-    console.warn(res)
-    epTestBtn.good(`avg ${res}`, 500)
-  }).catch((err) => {
-    console.log('err')
-  })
-  /*
-  let datagram = Uint8Array.from([12, 24, 36])
-  console.warn('begin')
-  let start = performance.now()
-  ep.write(datagram).then(() => {
-    console.log(performance.now() - start)
-    console.warn('end')
-    epTestBtn.good("resolves")
-    console.warn('RESOLVE EP WRITE')
-  }).catch((err) => {
-    epTestBtn.bad("rejects")
-    console.error('EP REJECT')
-    console.error(err)
-  })
-  */
-})
-
-let testRun = async (count) => {
-  let datagram = Uint8Array.from([12, 24, 36])
-  let start = performance.now()
-  let avg = 0
-  try {
-    for (let i = 0; i < count; i++) {
-      console.log(`test ${i}`)
-      await ep.write(datagram)
-      let now = performance.now()
-      avg += now - start
-      start = now
-    }
-  } catch (err) {
-    throw new Error(err)
-  }
-  return avg / count
-}
-
-let posns = osap.query(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 0), 512)
-
-let qTestBtn = new Button(240, 160, 104, 14, 'query test')
-qTestBtn.onClick(() => {
-  posns.pull().then((data) => {
-    console.warn("query passed", data)
-    qTestBtn.good('ok', 200)
-  }).catch((err) => {
-    console.warn("query fails")
-    console.error(err)
-    qTestBtn.bad('fail', 200)
-  })
 })
 
 // -------------------------------------------------------- STARTUP LOCAL

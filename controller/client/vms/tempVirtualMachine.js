@@ -12,7 +12,7 @@ Copyright is retained and must be preserved. The work is provided as is;
 no warranty is provided, and users accept all liability.
 */
 
-import { TS, PK, DK, AK, EP } from '../osapjs/core/ts.js'
+import { PK, TS, VT, EP, TIMES } from '../../osapjs/core/ts.js'
 
 export default function TempVM(osap, route){
     let tempSetEP = osap.endpoint()

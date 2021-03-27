@@ -12,10 +12,10 @@ Copyright is retained and must be preserved. The work is provided as is;
 no warranty is provided, and users accept all liability.
 */
 
-import { TS, PK, DK, AK, EP } from '../osapjs/core/ts.js'
-import TempVM from './tempVirtualMachine.js'
-import MotorVM from './motorVirtualMachine.js'
+import { PK, TS, VT, EP, TIMES } from '../../osapjs/core/ts.js'
 import LoadVM from './loadcellVirtualMachine.js'
+import MotorVM from './motorVirtualMachine.js'
+import TempVM from './tempVirtualMachine.js'
 
 /* bus ID (osap maps +1)
 X:    0 

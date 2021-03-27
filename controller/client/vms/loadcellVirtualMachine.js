@@ -12,8 +12,8 @@ Copyright is retained and must be preserved. The work is provided as is;
 no warranty is provided, and users accept all liability.
 */
 
-import { TS, PK, DK, AK, EP } from '../osapjs/core/ts.js'
-import LeastSquares from './util/lsq.js'
+import { PK, TS, VT, EP, TIMES } from '../../osapjs/core/ts.js'
+import LeastSquares from '../../osapjs/client/utes/lsq.js'
 
 export default function LoadVM(osap, route) {
   // want a calibration 
@@ -30,7 +30,7 @@ export default function LoadVM(osap, route) {
     lsq.setObservations(xy)
   }
 
-  let readingQuery = osap.query(route, TS.endpoint(0, 0), 512)
+  let readingQuery = osap.query(route)
   this.getReading = () => {
     return new Promise((resolve, reject) => {
       readingQuery.pull().then((data) => {

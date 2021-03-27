@@ -12,7 +12,7 @@ Copyright is retained and must be preserved. The work is provided as is;
 no warranty is provided, and users accept all liability.
 */
 
-import { TS } from '../osapjs/core/ts.js'
+import { TS } from '../../osapjs/core/ts.js'
 
 export default function MotorVM(osap, route) {
   
