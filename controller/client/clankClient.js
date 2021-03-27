@@ -30,6 +30,8 @@ import { Button } from '../osapjs/client/interface/button.js'
 import { TextInput } from '../osapjs/client/interface/textInput.js'
 import { JogBox } from '../osapjs/client/components/jogBox.js'
 
+import { SaveFile } from '../osapjs/client/utes/saveFile.js'
+
 console.log("hello clank controller")
 
 // an instance of some osap capable thing (the virtual object)
@@ -84,12 +86,12 @@ posBtn.onClick(() => {
     posLp = false
     posBtn.good("stop", 500)
   } else {
-    let poll = () => {
+    let posPoll = () => {
       if (!posLp) return
       vm.getPos().then((pos) => {
         if (posLp) {
           $(posBtn.elem).text(`X: ${pos.X.toFixed(2)}, Y: ${pos.Y.toFixed(2)}, Z: ${pos.Z.toFixed(2)}, E: ${pos.E.toFixed(2)}`)
-          setTimeout(poll, 50)
+          setTimeout(posPoll, 50)
         }
       }).catch((err) => {
         posLp = false
@@ -98,6 +100,31 @@ posBtn.onClick(() => {
       })
     }
     posLp = true
+    posPoll()
+  }
+})
+
+let speedBtn = new Button(430, 40, 344, 14, 'speed')
+let speedLp = false
+speedBtn.onClick(() => {
+  if (speedLp) {
+    speedLp = false
+    speedBtn.good("stop", 500)
+  } else {
+    let poll = () => {
+      if (!speedLp) return
+      vm.getSpeeds().then((speed) => {
+        if (speedLp) {
+          $(speedBtn.elem).text(`X: ${speed.X.toFixed(2)}, Y: ${speed.Y.toFixed(2)}, Z: ${speed.Z.toFixed(2)}, E: ${speed.E.toFixed(2)}`)
+          setTimeout(poll, 50)
+        }
+      }).catch((err) => {
+        speedLp = false
+        console.error(err)
+        speedBtn.bad("err", 1000)
+      })
+    }
+    speedLp = true
     poll()
   }
 })
@@ -197,7 +224,7 @@ let tempController = (xPlace, yPlace, i, init) => {
           //console.log(effort)
           effortPlot.pushPt([tempLpCount, effort])
           effortPlot.redraw()
-          setTimeout(poll, 0)
+          setTimeout(poll, 100)
         }).catch((err) => {
           tempLp = false
           console.error(err)
@@ -231,8 +258,59 @@ let tempController = (xPlace, yPlace, i, init) => {
   })
 }
 
-tempController(240, 190, 0, 220)
-tempController(240, 590, 1, 60)
+tempController(240, 890, 0, 220)
+tempController(240, 1390, 1, 60)
+
+// -------------------------------------------------------- EXTRUDER TEST
+
+let testStartBtn = new Button(240, 190, 104, 14, 'e test')
+let tempPlot = new AutoPlot(360, 190, 420, 200, 'temp (deg c)')
+tempPlot.setHoldCount(1000)
+let speedPlot = new AutoPlot(360, 400, 420, 200, 'e speed (mm/min)')
+speedPlot.setHoldCount(1000)
+let loadPlot = new AutoPlot(360, 620, 420, 200, 'e load (n)')
+loadPlot.setHoldCount(1000)
+let tstLp = false
+let eTestLpCnt = 0 
+let eTestStore = {
+  temps: [],
+  speeds: [],
+  loads: []
+}
+testStartBtn.onClick(() => {
+  if(tstLp){
+    tstLp = false 
+    return 
+  }
+  let lp = () => {
+    if(!tstLp){
+      testStartBtn.bad("fin", 500)
+      console.log(eTestStore)
+      //SaveFile(eTestStore, 'json', 'extruderTestData.json')
+      return 
+    }
+    vm.pullExtruderTest().then((res) => {
+      eTestLpCnt ++ 
+      tempPlot.pushPt([eTestLpCnt, res.temp])
+      speedPlot.pushPt([eTestLpCnt, res.speed])
+      loadPlot.pushPt([eTestLpCnt, res.load])
+      //if(eTestLpCnt % 1 == 0){
+        tempPlot.redraw()
+        speedPlot.redraw()
+        loadPlot.redraw()
+      //}
+      eTestStore.temps.push(res.temp)
+      eTestStore.speeds.push(res.speed)
+      eTestStore.loads.push(res.load)
+      setTimeout(lp, 0)
+    }).catch((err) => {
+      console.error(err)
+      setTimeout(lp, 10)
+    })
+  }
+  tstLp = true 
+  lp()
+})
 
 // -------------------------------------------------------- MOTION SETTINGS
 // todo: should bundle with jog, position query, etc ? or get on with other work 
@@ -338,7 +416,7 @@ initMachineBtn.onClick(() => {
 
 // -------------------------------------------------------- TOOLCHANGER 
 
-let tcBtn = new Button(430, 40, 94, 14, 'tc')
+let tcBtn = new Button(540, 70, 94, 14, 'tc')
 tcBtn.onClick(() => {
   if ($(tcBtn.elem).text() == 'close tc') {
     vm.closeTC().then(() => {
@@ -374,7 +452,7 @@ let dropBtn = new Button(430, 70, 94, 14, 'drop T0')
 dropBtn.onClick(() => {
   vm.dropTool(0).then(() => {
     dropBtn.good("ok", 500)
-  }).catch((err) => { 
+  }).catch((err) => {
     console.error(err)
     dropBtn.bad("err", 500)
   })
@@ -395,24 +473,24 @@ pickupBtn.onClick(() => {
 let loadBtn = new Button(540, 100, 95, 14, 'loadcell')
 let loadLp = false
 loadBtn.onClick(() => {
-  if(loadLp){
+  if (loadLp) {
     loadLp = false
     return
   }
   let lp = () => {
-    if(!loadLp){
+    if (!loadLp) {
       loadBtn.bad("cancelled", 500)
-      return 
+      return
     }
     vm.loadcell.getReading().then((reading) => {
-      console.log(reading)
+      $(loadBtn.elem).text(`${reading.toFixed(3)}`)
       setTimeout(lp, 10)
     }).catch((err) => {
       console.error(err)
-      loadLp = false 
+      loadLp = false
     })
   }
-  loadLp = true 
+  loadLp = true
   lp()
 })
 

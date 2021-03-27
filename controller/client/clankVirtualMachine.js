@@ -104,6 +104,22 @@ export default function ClankVM(osap, route) {
     })
   }
 
+  // query for (time of query) speeds 
+  let vQuery = osap.query(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 7), 512)
+  this.getSpeeds = () => {
+    return new Promise((resolve, reject) => {
+      vQuery.pull().then((data) => {
+        let speeds = {
+          X: TS.read('float32', data, 0, true),
+          Y: TS.read('float32', data, 4, true),
+          Z: TS.read('float32', data, 8, true),
+          E: TS.read('float32', data, 12, true)
+        }
+        resolve(speeds)
+      }).catch((err) => { reject(err) })
+    })
+  }
+
   // another query to see if it's currently moving, 
   // update that endpoint so we can 'write halt' / 'write go' with a set 
   let motionQuery = osap.query(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 3), 512)
@@ -216,10 +232,12 @@ export default function ClankVM(osap, route) {
   let motorCurrents = [0.5, 0.5, 0.5, 0.5, 0.5]
   this.setMotorCurrents = async () => {
     try {
+      /*
       await this.motors.X.setCScale(motorCurrents[0])
       await this.motors.YL.setCScale(motorCurrents[1])
       await this.motors.YR.setCScale(motorCurrents[2])
       await this.motors.Z.setCScale(motorCurrents[3])
+      */
       //await this.motors.E.setCScale(motorCurrents[4])
     } catch (err) {
       console.error('bad motor current set')
@@ -248,6 +266,7 @@ export default function ClankVM(osap, route) {
     // could do them all parallel: like this halts if i.e. YL fails,
     // where it might just be that motor with an error... that'd be catching / continuing, accumulating
     // errors, and reporting them in a group 
+    /*
     try {
       await this.motors.X.setAxisPick(0)
       await this.motors.X.setAxisInversion(false)
@@ -280,7 +299,7 @@ export default function ClankVM(osap, route) {
       console.error('bad z motor init')
       throw err
     }
-    /*
+    */
     try {
       await this.motors.E.setAxisPick(3)
       await this.motors.E.setAxisInversion(true)
@@ -289,7 +308,6 @@ export default function ClankVM(osap, route) {
       console.error('bad e motor init')
       throw err
     }
-    */
     await this.setMotorCurrents()
   }
 
@@ -431,5 +449,66 @@ export default function ClankVM(osap, route) {
   // ------------------------------------------------------ LOADCELL 
 
   this.loadcell = new LoadVM(osap, TS.route().portf(0).portf(1).busf(1, 8).end())
+  let readings = [
+    [-124000, -137000, -147000, -159000, -171000, -184000, -195000, -225000, -350000],
+    [0, -50, -100, -150, -200, -250, -300, -500, -1000]]
+  this.loadcell.setObservations(readings, 'grams')
+
+  /*
+  this.pullExtruderTest = () => {
+    return new Promise((resolve, reject) => {
+      let res = {
+        temp: undefined, 
+        speed: undefined,
+        load: undefined
+      }
+      this.tvm[0].getExtruderTemp().then((temp) => {
+        res.temp = temp
+        return delay(10)
+      }).then(() => {
+        return this.getSpeeds()
+      }).then((speeds) => {
+        res.speed = speeds.E 
+        return delay(10)
+      }).then(() => {
+        return this.loadcell.getReading()
+      }).then((load) => {
+        res.load = load
+        resolve(res)
+      }).catch((err) => {
+        reject(err)
+      })
+    })
+  }
+  */
+  this.pullExtruderTest = () => {
+    return new Promise((resolve, reject) => {
+      let res = {
+        temp: undefined, 
+        speed: undefined,
+        load: undefined
+      }
+      let resolved = false 
+      let checkRes = () => {
+        if(resolved) return 
+        if(res.temp != undefined && res.speed != undefined && res.load != undefined){
+          resolved = true 
+          resolve(res)
+        }
+      }
+      this.tvm[0].getExtruderTemp().then((temp) => {
+        res.temp = temp 
+        checkRes()
+      }).catch((err) => { reject(err) })
+      this.getSpeeds().then((speeds) => {
+        res.speed = speeds.E
+        checkRes()
+      }).catch((err) => { reject(err) })
+      this.loadcell.getReading().then((newtons) => {
+        res.load = newtons
+        checkRes()
+      }).catch((err) => { reject(err) })
+    })
+  }
 
 }

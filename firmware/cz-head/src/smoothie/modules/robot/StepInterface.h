@@ -36,6 +36,7 @@ class StepInterface {
         // for net interface, 
         volatile int32_t stepwise_position = 0;
         volatile float floating_position = 0.0F;
+        volatile float current_speed = 0.0F;
 
     private:
         volatile boolean direction = false;
@@ -43,10 +44,13 @@ class StepInterface {
 
         float max_rate = 100.0F; // in mm/sec ? 
         float accel = 100.0F; // in mm/sec/sec 
-        float steps_per_mm = 400.0F; // for everyone: this is a hack... actually we send floating posns to steppers, who deal with this config 
+        float steps_per_mm = 500.0F; // for everyone: this is a hack... actually we send floating posns to steppers, who deal with this config 
         float mm_per_step = 1 / steps_per_mm;
         int32_t last_milestone_steps = 0;
         float last_milestone_mm = 0;
+        // to track speed
+        volatile unsigned long now = 0;
+        volatile unsigned long last_tick = 0;
 };
 
 #endif 

@@ -56,7 +56,10 @@ boolean StepInterface::step(void){
         stepwise_position ++;
     }
     floating_position = stepwise_position * mm_per_step;
-    // do step things 
+    // track speed, 
+    now = micros();
+    current_speed = (mm_per_step * 1000000) / (now - last_tick);
+    last_tick = now;
     return moving;
 }
 
@@ -70,6 +73,7 @@ void StepInterface::start_moving(void){
 
 void StepInterface::stop_moving(void){
     moving = false;
+    current_speed = 0.0F;
 }
 
 boolean StepInterface::is_moving(void){

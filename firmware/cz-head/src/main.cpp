@@ -179,6 +179,28 @@ boolean onRatesEP(uint8_t* data, uint16_t len){
 }
 Endpoint* rateSettingEP = osap->endpoint(onRatesEP);
 
+// ENDPOINT 7
+boolean onSpeedPut(uint8_t* data, uint16_t len);
+boolean onSpeedQuery(void);
+
+Endpoint* speedQueryEP = osap->endpoint(onSpeedPut, onSpeedQuery);
+
+boolean onSpeedPut(uint8_t* data, uint16_t len){
+  return true;
+}
+
+boolean onSpeedQuery(void){
+  // collect actuator speeds, 
+  uint8_t speedData[16];
+  uint16_t wptr = 0;
+  ts_writeFloat32(smoothieRoll->actuators[0]->current_speed, speedData, &wptr);
+  ts_writeFloat32(smoothieRoll->actuators[1]->current_speed, speedData, &wptr);
+  ts_writeFloat32(smoothieRoll->actuators[2]->current_speed, speedData, &wptr);
+  ts_writeFloat32(smoothieRoll->actuators[3]->current_speed, speedData, &wptr);
+  speedQueryEP->write(speedData, 16);
+  return true;
+}
+
 // -------------------------------------------------------- SETUP 
 
 void setup() {
@@ -195,7 +217,8 @@ void setup() {
   // smoothie 
   smoothieRoll->init();
   // 100kHz base (10us period)
-  d51_clock_boss->start_ticker_a(10);
+  // 25kHz base (40us period)
+  d51_clock_boss->start_ticker_a(40);
   // ... 
   testEP->write(qtest, 6);
 
@@ -280,7 +303,7 @@ void TC0_Handler(void){
     ts_writeFloat32(smoothieRoll->actuators[3]->floating_position, motion_packet, &mpptr);
     // write packet, put on ucbus
     //DEBUG3PIN_ON;
-    ucBusHead->transmit_a(motion_packet, 21);
+    ucBusHead->transmit_a(motion_packet, 17);
     //DEBUG3PIN_OFF;
   }
 }
