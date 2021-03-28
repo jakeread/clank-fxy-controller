@@ -12,31 +12,36 @@ Copyright is retained and must be preserved. The work is provided as is;
 no warranty is provided, and users accept all liability.
 */
 
-import { TS } from '../../osapjs/core/ts.js'
+import { PK, TS, VT, EP, TIMES } from '../../osapjs/core/ts.js'
+
+/* osape-smoothieroll-drop-stepper 
+0: serialport 
+1: bus head
+2: axis pick set 
+*/
 
 export default function MotorVM(osap, route) {
+  console.warn('motor route', JSON.parse(JSON.stringify(route)))
   
-  // 1st (0th) axis pick
   let axisPickEP = osap.endpoint()
-  axisPickEP.addRoute(route, TS.endpoint(0, 0), 512)
+  axisPickEP.addRoute(PK.route(route).sib(2).end())
   this.setAxisPick = (pick) => {
     let datagram = new Uint8Array(1)
     TS.write('uint8', pick, datagram, 0, true)
     return new Promise((resolve, reject) => {
-      axisPickEP.write(datagram).then(() => {
+      axisPickEP.write(datagram, "acked").then(() => {
         resolve()
       }).catch((err) => { reject(err) })  
     })
   }
   
-  // axis invert, 
   let axisInvertEP = osap.endpoint()
-  axisInvertEP.addRoute(route, TS.endpoint(0, 1), 512)
+  axisInvertEP.addRoute(PK.route(route).sib(3).end())
   this.setAxisInversion = (invert) => {
     let datagram = new Uint8Array(1)
     TS.write('boolean', invert, datagram, 0, true)
     return new Promise((resolve, reject) => {
-      axisInvertEP.write(datagram).then(() => {
+      axisInvertEP.write(datagram, "acked").then(() => {
         resolve()
       }).catch((err) => { reject(err) })  
     })
@@ -44,12 +49,12 @@ export default function MotorVM(osap, route) {
 
   // steps per unit 
   let spuEP = osap.endpoint()
-  spuEP.addRoute(route, TS.endpoint(0, 2), 512)
+  spuEP.addRoute(PK.route(route).sib(4).end())
   this.setSPU = (spu) => {
     let datagram = new Uint8Array(4)
     TS.write('float32', spu, datagram, 0, true)
     return new Promise((resolve, reject) => {
-      spuEP.write(datagram).then(() => {
+      spuEP.write(datagram, "acked").then(() => {
         resolve()
       }).catch((err) => { reject(err) })  
     })
@@ -57,12 +62,12 @@ export default function MotorVM(osap, route) {
 
   // current scaling 0-1 
   let cscaleEP = osap.endpoint()
-  cscaleEP.addRoute(route, TS.endpoint(0, 3), 512)
+  cscaleEP.addRoute(PK.route(route).sib(5).end())
   this.setCScale = (cscale) => {
     let datagram = new Uint8Array(4)
     TS.write('float32', cscale, datagram, 0, true)
     return new Promise((resolve, reject) => {
-      cscaleEP.write(datagram).then(() => {
+      cscaleEP.write(datagram, "acked").then(() => {
         resolve()
       }).catch((err) => { reject(err) })  
     })

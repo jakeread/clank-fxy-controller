@@ -41,6 +41,20 @@ Ah, now I am having a linking issue with the endpoint API in embedded. And maybe
 
 OK, worked through some more indexing troubles and reverted to an older API for building endpoints in embedded. Compiler struggles. The basics seem to be in place now. 
 
+Still some more route management... perhaps when adding to queries, assume swap of sib -> child (?) Just hot swapping in from .sib() to .child() then. 
+
+Seems to be all nearly working, but am not getting any motion. Should inspect interrupts, etc. 
+
+## 2021 03 28 
+
+Carrying on with the motion stage... 
+
+- have the kind of 'motion core' up and running, should make this a js module 
+- make motor vm / motor code aligned 
+- swap cz-head board, plug test motor
+- test jog / etc 
+
 ### Swap Tail
 
 - not 100% on ucBusHead_transmitA(); !warning 
+- ucbus head tick is low for the old interrupt bugs, will have to see if they return or if they're OK with FIFO code now 

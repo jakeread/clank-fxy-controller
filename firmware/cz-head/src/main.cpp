@@ -104,6 +104,25 @@ boolean beforePositionQuery(void){
   return true; 
 }
 
+// -------------------------------------------------------- CURRENT SPEEDS
+
+boolean beforeSpeedQuery(void);
+
+vertex_t* speedEp = osapBuildEndpoint("speed", nullptr, beforeSpeedQuery);
+
+boolean beforeSpeedQuery(void){
+  // collect actuator speeds, 
+  uint8_t speedData[16];
+  uint16_t wptr = 0;
+  ts_writeFloat32(smoothieRoll->actuators[0]->current_speed, speedData, &wptr);
+  ts_writeFloat32(smoothieRoll->actuators[1]->current_speed, speedData, &wptr);
+  ts_writeFloat32(smoothieRoll->actuators[2]->current_speed, speedData, &wptr);
+  ts_writeFloat32(smoothieRoll->actuators[3]->current_speed, speedData, &wptr);
+  memcpy(speedEp->ep->data, speedData, 16);
+  speedEp->ep->dataLen = 16;
+  return true;
+}
+
 // -------------------------------------------------------- MOTION STATE EP 
 
 boolean beforeMotionStateQuery(void);
@@ -138,10 +157,9 @@ boolean onWaitTimeData(uint8_t* data, uint16_t len){
 
 vertex_t* waitTimeEp = osapBuildEndpoint("waitTime", onWaitTimeData, nullptr);  // 5 
 
-/*
+// -------------------------------------------------------- ACCEL SETTTINGS 
 
-// ENDPOINT 5
-boolean onAccelsEP(uint8_t* data, uint16_t len){
+boolean onAccelSettingsData(uint8_t* data, uint16_t len){
   // should be 4 floats: new accel values per-axis 
   uint16_t ptr = 0;
   chunk_float32 targetChunks[4];
@@ -156,10 +174,12 @@ boolean onAccelsEP(uint8_t* data, uint16_t len){
   // assuming that went well, 
   return true;
 }
-Endpoint* accelSettingEP = osap->endpoint(onAccelsEP);
 
-// ENDPOINT 6
-boolean onRatesEP(uint8_t* data, uint16_t len){
+vertex_t* accelSettingsEp = osapBuildEndpoint("accelSettings", onAccelSettingsData, nullptr);
+
+// -------------------------------------------------------- RATES SETTINGS 
+
+boolean onRateSettingsData(uint8_t* data, uint16_t len){
   // should be 4 floats: new accel values per-axis 
   uint16_t ptr = 0;
   chunk_float32 targetChunks[4];
@@ -174,30 +194,8 @@ boolean onRatesEP(uint8_t* data, uint16_t len){
   // assuming that went well, 
   return true;
 }
-Endpoint* rateSettingEP = osap->endpoint(onRatesEP);
 
-// ENDPOINT 7
-boolean onSpeedPut(uint8_t* data, uint16_t len);
-boolean onSpeedQuery(void);
-
-Endpoint* speedQueryEP = osap->endpoint(onSpeedPut, onSpeedQuery);
-
-boolean onSpeedPut(uint8_t* data, uint16_t len){
-  return true;
-}
-
-boolean onSpeedQuery(void){
-  // collect actuator speeds, 
-  uint8_t speedData[16];
-  uint16_t wptr = 0;
-  ts_writeFloat32(smoothieRoll->actuators[0]->current_speed, speedData, &wptr);
-  ts_writeFloat32(smoothieRoll->actuators[1]->current_speed, speedData, &wptr);
-  ts_writeFloat32(smoothieRoll->actuators[2]->current_speed, speedData, &wptr);
-  ts_writeFloat32(smoothieRoll->actuators[3]->current_speed, speedData, &wptr);
-  speedQueryEP->write(speedData, 16);
-  return true;
-}
-*/
+vertex_t* rateSettingsEp = osapBuildEndpoint("rateSettings", onRateSettingsData, nullptr);
 
 // -------------------------------------------------------- SETUP 
 
@@ -219,10 +217,16 @@ void setup() {
   osapAddVertex(moveQueueEp);     // 2
   // position 
   osapAddVertex(positionEp);      // 3
+  // speed 
+  osapAddVertex(speedEp);         // 4 
   // motion state 
-  osapAddVertex(motionStateEp);   // 4
+  osapAddVertex(motionStateEp);   // 5
   // set wait time (ms)
-  osapAddVertex(waitTimeEp);      // 5
+  osapAddVertex(waitTimeEp);      // 6
+  // acceler8 settings
+  osapAddVertex(accelSettingsEp); // 7 
+  // r8 settings 
+  osapAddVertex(rateSettingsEp);  // 8 
   // smoothie 
   smoothieRoll->init();
   // 100kHz base (10us period)

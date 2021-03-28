@@ -105,7 +105,72 @@ let vm = new ClankVM(osap)
 // panel, 
 let gCodePanel = new GCodePanel(vm, 10, 10)
 
-let jogBox = new JogBox(240, 10, vm)
+// jog, 
+let jogBox = new JogBox(350, 10, vm)
+
+// init & rates 
+
+let ratesXpos = 250 
+let ratesYpos = 130
+let setRatesBtn = new Button(ratesXpos, ratesYpos, 84, 24, 'set acc & max fr')
+let accText = new Button(ratesXpos, ratesYpos + 40, 84, 14, 'mm/sec^2')
+let xAccVal = new TextInput(ratesXpos, ratesYpos + 70, 90, 20, '10000')
+let yAccVal = new TextInput(ratesXpos, ratesYpos + 100, 90, 20, '10000')
+let zAccVal = new TextInput(ratesXpos, ratesYpos + 130, 90, 20, '500')
+let eAccVal = new TextInput(ratesXpos, ratesYpos + 160, 90, 20, '1000')
+
+let rateText = new Button(ratesXpos, ratesYpos + 190, 84, 14, 'mm/min')
+let xRateVal = new TextInput(ratesXpos, ratesYpos + 220, 90, 20, '12000')
+let yRateVal = new TextInput(ratesXpos, ratesYpos + 250, 90, 20, '12000')
+let zRateVal = new TextInput(ratesXpos, ratesYpos + 280, 90, 20, '1000')
+let eRateVal = new TextInput(ratesXpos, ratesYpos + 310, 90, 20, '60000')
+
+let setupMotion = () => {
+  // accel 
+  let aVals = {
+    X: parseFloat(xAccVal.value),
+    Y: parseFloat(yAccVal.value),
+    Z: parseFloat(zAccVal.value),
+    E: parseFloat(eAccVal.value)
+  }
+  for (let v in aVals) {
+    if (Number.isNaN(aVals[v])) { console.error('bad parse for float', v); return }
+  }
+  // rates
+  let rVals = {
+    X: parseFloat(xRateVal.value),
+    Y: parseFloat(yRateVal.value),
+    Z: parseFloat(zRateVal.value),
+    E: parseFloat(eRateVal.value)
+  }
+  for (let v in rVals) {
+    if (Number.isNaN(rVals[v])) { console.error('bad parse for float', r); return }
+  }
+  // network 
+  return new Promise((resolve, reject) => {
+    console.log('setting accels')
+    vm.motion.setAccels(aVals).then(() => {
+      console.log('setting rates')
+      return vm.motion.setRates(rVals)
+    }).then(() => {
+      resolve()
+    }).catch((err) => { reject(err) })
+  })
+}
+
+// init... 
+let initBtn = new Button(250, 10, 84, 104, 'init')
+initBtn.onClick(() => {
+  setupMotion().then(() => {
+    console.log('setup motor')
+    return vm.initMotors()
+  }).then(() => {
+    initBtn.good("ok", 500)
+  }).catch((err) => {
+    console.error(err)
+    initBtn.bad("err", 500)
+  })
+})
 
 /*
 // this is... kind of buggy. button state sometimes straightforwards, sometimes callback hell 
@@ -118,7 +183,7 @@ posBtn.onClick(() => {
   } else {
     let posPoll = () => {
       if (!posLp) return
-      vm.getPos().then((pos) => {
+      vm.motion.getPos().then((pos) => {
         if (posLp) {
           $(posBtn.elem).text(`X: ${pos.X.toFixed(2)}, Y: ${pos.Y.toFixed(2)}, Z: ${pos.Z.toFixed(2)}, E: ${pos.E.toFixed(2)}`)
           setTimeout(posPoll, 50)
@@ -143,7 +208,7 @@ speedBtn.onClick(() => {
   } else {
     let poll = () => {
       if (!speedLp) return
-      vm.getSpeeds().then((speed) => {
+      vm.motion.getSpeeds().then((speed) => {
         if (speedLp) {
           $(speedBtn.elem).text(`X: ${speed.X.toFixed(2)}, Y: ${speed.Y.toFixed(2)}, Z: ${speed.Z.toFixed(2)}, E: ${speed.E.toFixed(2)}`)
           setTimeout(poll, 50)
@@ -161,7 +226,7 @@ speedBtn.onClick(() => {
 
 let setStartBtn = new Button(360, 130, 94, 14, 'offset zero')
 setStartBtn.onClick(() => {
-  vm.setPos({
+  vm.motion.setPos({
     X: 0,
     Y: 0,
     Z: 121.8,
@@ -176,7 +241,7 @@ setStartBtn.onClick(() => {
 
 let gotoZeroBtn = new Button(360, 160, 94, 14, 'goto zero')
 gotoZeroBtn.onClick(() => {
-  vm.addMoveToQueue({
+  vm.motion.addMoveToQueue({
     rate: 600,
     position: {
       X: 0,
@@ -344,50 +409,6 @@ testStartBtn.onClick(() => {
 
 // -------------------------------------------------------- MOTION SETTINGS
 // todo: should bundle with jog, position query, etc ? or get on with other work 
-
-let setRatesBtn = new Button(790, 10, 84, 24, 'set acc & max fr')
-let accText = new Button(790, 50, 84, 14, 'mm/sec^2')
-let xAccVal = new TextInput(790, 80, 90, 20, '300')
-let yAccVal = new TextInput(790, 110, 90, 20, '300')
-let zAccVal = new TextInput(790, 140, 90, 20, '50')
-let eAccVal = new TextInput(790, 170, 90, 20, '900')
-
-let rateText = new Button(790, 200, 84, 14, 'mm/min')
-let xRateVal = new TextInput(790, 230, 90, 20, '12000')
-let yRateVal = new TextInput(790, 260, 90, 20, '12000')
-let zRateVal = new TextInput(790, 290, 90, 20, '1000')
-let eRateVal = new TextInput(790, 320, 90, 20, '60000')
-
-let setupMotion = () => {
-  // accel 
-  let aVals = {
-    X: parseFloat(xAccVal.value),
-    Y: parseFloat(yAccVal.value),
-    Z: parseFloat(zAccVal.value),
-    E: parseFloat(eAccVal.value)
-  }
-  for (let v in aVals) {
-    if (Number.isNaN(aVals[v])) { console.error('bad parse for float', v); return }
-  }
-  // rates
-  let rVals = {
-    X: parseFloat(xRateVal.value),
-    Y: parseFloat(yRateVal.value),
-    Z: parseFloat(zRateVal.value),
-    E: parseFloat(eRateVal.value)
-  }
-  for (let v in rVals) {
-    if (Number.isNaN(rVals[v])) { console.error('bad parse for float', r); return }
-  }
-  // network 
-  return new Promise((resolve, reject) => {
-    vm.setAccels(aVals).then(() => {
-      return vm.setRates(rVals)
-    }).then(() => {
-      resolve()
-    }).catch((err) => { reject(err) })
-  })
-}
 
 setRatesBtn.onClick(() => {
   setupMotion().then(() => {

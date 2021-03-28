@@ -13,6 +13,7 @@ no warranty is provided, and users accept all liability.
 */
 
 import { PK, TS, VT, EP, TIMES } from '../../osapjs/core/ts.js'
+import MotionVM from './motionVirtualMachine.js'
 import LoadVM from './loadcellVirtualMachine.js'
 import MotorVM from './motorVirtualMachine.js'
 import TempVM from './tempVirtualMachine.js'
@@ -37,176 +38,11 @@ BED:  8
 4: get position 
 */
 
-export default function ClankVM(osap, route) {
+export default function ClankVM(osap) {
 
   // ------------------------------------------------------ MOTION
-  // ok: we make an 'endpoint' that will transmit moves,
-  let moveEP = osap.endpoint()
-  // add the machine head's route to it, 
-  moveEP.addRoute(PK.route().sib(0).pfwd().sib(1).pfwd().sib(2).end()) //TS.route().portf(0).portf(1).end(), TS.endpoint(0, 1), 512)
-  // and set a long timeout,
-  moveEP.setTimeoutLength(60000)
-  // move like: { position: {X: num, Y: num, Z: num}, rate: num }
-  this.addMoveToQueue = (move) => {
-    // write the gram, 
-    let wptr = 0
-    let datagram = new Uint8Array(20)
-    // write rate 
-    wptr += TS.write('float32', move.rate, datagram, wptr, true)
-    // write posns 
-    wptr += TS.write('float32', move.position.X, datagram, wptr, true)
-    wptr += TS.write('float32', move.position.Y, datagram, wptr, true)
-    wptr += TS.write('float32', move.position.Z, datagram, wptr, true)
-    if (move.position.E) {
-      //console.log(move.position.E)
-      wptr += TS.write('float32', move.position.E, datagram, wptr, true)
-    } else {
-      wptr += TS.write('float32', 0, datagram, wptr, true)
-    }
-    // do the networking, 
-    return new Promise((resolve, reject) => {
-      moveEP.write(datagram, "acked").then(() => {
-        resolve()
-      }).catch((err) => {
-        reject(err)
-      })
-    })
-  }
-
-  // to set the current position, 
-  let setPosEP = osap.endpoint()
-  setPosEP.addRoute(PK.route().sib(0).pfwd().sib(1).pfwd().sib(3).end())//TS.route().portf(0).portf(1).end(), TS.endpoint(0, 2), 512)
-  setPosEP.setTimeoutLength(10000)
-  this.setPos = (pos) => {
-    let wptr = 0
-    let datagram = new Uint8Array(16)
-    wptr += TS.write('float32', pos.X, datagram, wptr, true)
-    wptr += TS.write('float32', pos.Y, datagram, wptr, true)
-    wptr += TS.write('float32', pos.Z, datagram, wptr, true)
-    if (pos.E) {
-      wptr += TS.write('float32', pos.E, datagram, wptr, true)
-    } else {
-      wptr += TS.write('float32', 0, datagram, wptr, true)
-    }
-    // ship it 
-    return new Promise((resolve, reject) => {
-      setPosEP.write(datagram, "acked").then(() => {
-        resolve()
-      }).catch((err) => { reject(err) })
-    })
-  }
-
-  // an a 'query' to check current position 
-  let posQuery = osap.query(PK.route().child(0).pfwd().sib(1).pfwd().sib(3).end()) //TS.route().portf(0).portf(1).end(), TS.endpoint(0, 2), 512)
-  this.getPos = () => {
-    return new Promise((resolve, reject) => {
-      posQuery.pull().then((data) => {
-        let pos = {
-          X: TS.read('float32', data, 0, true),
-          Y: TS.read('float32', data, 4, true),
-          Z: TS.read('float32', data, 8, true),
-          E: TS.read('float32', data, 12, true)
-        }
-        resolve(pos)
-      }).catch((err) => { reject(err) })
-    })
-  }
-
-  // another query to see if it's currently moving, 
-  // update that endpoint so we can 'write halt' / 'write go' with a set 
-  let motionQuery = osap.query(PK.route().child(0).pfwd().sib(1).pfwd().sib(4).end())//TS.route().portf(0).portf(1).end(), TS.endpoint(0, 3), 512)
-  this.awaitMotionEnd = () => {
-    return new Promise((resolve, reject) => {
-      let check = () => {
-        motionQuery.pull().then((data) => {
-          if (data[0] > 0) {
-            setTimeout(check, 50)
-          } else {
-            resolve()
-          }
-        }).catch((err) => {
-          reject(err)
-        })
-      }
-      setTimeout(check, 50)
-    })
-  }
-
-  // an endpoint to write 'wait time' on the remote,
-  let waitTimeEP = osap.endpoint()
-  waitTimeEP.addRoute(PK.route().sib(0).pfwd().sib(1).pfwd().sib(5).end())//TS.route().portf(0).portf(1).end(), TS.endpoint(0, 4), 512)
-  this.setWaitTime = (ms) => {
-    return new Promise((resolve, reject) => {
-      let datagram = new Uint8Array(4)
-      TS.write('uint32', ms, datagram, 0, true)
-      waitTimeEP.write(datagram, "acked").then(() => {
-        resolve()
-      }).catch((err) => { reject(err) })
-    })
-  }
-
-  /*
-  // query for (time of query) speeds 
-  let vQuery = osap.query(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 7), 512)
-  this.getSpeeds = () => {
-    return new Promise((resolve, reject) => {
-      vQuery.pull().then((data) => {
-        let speeds = {
-          X: TS.read('float32', data, 0, true),
-          Y: TS.read('float32', data, 4, true),
-          Z: TS.read('float32', data, 8, true),
-          E: TS.read('float32', data, 12, true)
-        }
-        resolve(speeds)
-      }).catch((err) => { reject(err) })
-    })
-  }
-
-  // endpoint to set per-axis accelerations,
-  let accelEP = osap.endpoint()
-  accelEP.addRoute(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 5), 512)
-  this.setAccels = (accels) => { // float array, len 4 XYZE 
-    let wptr = 0
-    let datagram = new Uint8Array(16)
-    wptr += TS.write('float32', accels.X, datagram, wptr, true)
-    wptr += TS.write('float32', accels.Y, datagram, wptr, true)
-    wptr += TS.write('float32', accels.Z, datagram, wptr, true)
-    if (accels.E) {
-      wptr += TS.write('float32', accels.E, datagram, wptr, true)
-    } else {
-      wptr += TS.write('float32', 0, datagram, wptr, true)
-    }
-    return new Promise((resolve, reject) => {
-      accelEP.write(datagram).then(() => {
-        resolve()
-      }).catch((err) => { reject(err) })
-    })
-  }
-
-  let rateEP = osap.endpoint()
-  rateEP.addRoute(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 6), 512)
-  this.setRates = (rates) => {
-    // in firmware we think of mm/sec, 
-    // in gcode and up here we think in mm/minute 
-    // so conversion happens here 
-    let wptr = 0
-    let datagram = new Uint8Array(16)
-    wptr += TS.write('float32', rates.X / 60, datagram, wptr, true)
-    wptr += TS.write('float32', rates.Y / 60, datagram, wptr, true)
-    wptr += TS.write('float32', rates.Z / 60, datagram, wptr, true)
-    if (rates.E) {
-      wptr += TS.write('float32', rates.E / 60, datagram, wptr, true)
-    } else {
-      wptr += TS.write('float32', 100, datagram, wptr, true)
-    }
-    return new Promise((resolve, reject) => {
-      rateEP.write(datagram).then(() => {
-        resolve()
-      }).catch((err) => { reject(err) })
-    })
-  } 
-
-  */
+  // with base route -> embedded smoothie instance 
+  this.motion = new MotionVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().end())
 
   // ------------------------------------------------------ MOTORS
 
@@ -232,20 +68,18 @@ export default function ClankVM(osap, route) {
   BED:  8
   */
 
-  /*
-
   this.motors = {
-    X: new MotorVM(osap, TS.route().portf(0).portf(1).busf(1, 1).end()),
-    YL: new MotorVM(osap, TS.route().portf(0).portf(1).busf(1, 2).end()),
-    YR: new MotorVM(osap, TS.route().portf(0).portf(1).busf(1, 3).end()),
-    Z: new MotorVM(osap, TS.route().portf(0).portf(1).busf(1, 4).end()),
-    E: new MotorVM(osap, TS.route().portf(0).portf(1).busf(1, 6).end()),
+    X: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(1).end()),    // 1
+    // YL: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).bfwd(2).end()),   // 2
+    // YR: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).bfwd(3).end()),   // 3
+    // Z: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).bfwd(4).end()),    // 4
+    // E: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).bfwd(6).end()),    // 6
   }
 
   let motorCurrents = [0.5, 0.5, 0.5, 0.5, 0.5]
   this.setMotorCurrents = async () => {
     try {
-      // await this.motors.X.setCScale(motorCurrents[0])
+      await this.motors.X.setCScale(motorCurrents[0])
       // await this.motors.YL.setCScale(motorCurrents[1])
       // await this.motors.YR.setCScale(motorCurrents[2])
       // await this.motors.Z.setCScale(motorCurrents[3])
@@ -262,10 +96,10 @@ export default function ClankVM(osap, route) {
   this.disableMotors = async () => {
     try {
       await this.motors.X.setCScale(0)
-      await this.motors.YL.setCScale(0)
-      await this.motors.YR.setCScale(0)
-      await this.motors.Z.setCScale(0)
-      await this.motors.E.setCScale(0)
+      // await this.motors.YL.setCScale(0)
+      // await this.motors.YR.setCScale(0)
+      // await this.motors.Z.setCScale(0)
+      // await this.motors.E.setCScale(0)
     } catch (err) {
       console.error('bad motor disable set')
       throw err
@@ -277,14 +111,14 @@ export default function ClankVM(osap, route) {
     // could do them all parallel: like this halts if i.e. YL fails,
     // where it might just be that motor with an error... that'd be catching / continuing, accumulating
     // errors, and reporting them in a group 
-    // try {
-    //   await this.motors.X.setAxisPick(0)
-    //   await this.motors.X.setAxisInversion(false)
-    //   await this.motors.X.setSPU(320)
-    // } catch (err) {
-    //   console.error('bad x motor init')
-    //   throw err
-    // }
+    try {
+      await this.motors.X.setAxisPick(0)
+      await this.motors.X.setAxisInversion(false)
+      await this.motors.X.setSPU(320)
+    } catch (err) {
+      console.error('bad x motor init')
+      throw err
+    }
     // try {
     //   await this.motors.YL.setAxisPick(1)
     //   await this.motors.YL.setAxisInversion(true)
@@ -309,16 +143,18 @@ export default function ClankVM(osap, route) {
     //   console.error('bad z motor init')
     //   throw err
     // }
-    try {
-      await this.motors.E.setAxisPick(3)
-      await this.motors.E.setAxisInversion(true)
-      await this.motors.E.setSPU(550)
-    } catch (err) {
-      console.error('bad e motor init')
-      throw err
-    }
+    // try {
+    //   await this.motors.E.setAxisPick(3)
+    //   await this.motors.E.setAxisInversion(true)
+    //   await this.motors.E.setSPU(550)
+    // } catch (err) {
+    //   console.error('bad e motor init')
+    //   throw err
+    // }
     await this.setMotorCurrents()
   }
+
+  /*
 
   // ------------------------------------------------------ TOOLCHANGER
 
