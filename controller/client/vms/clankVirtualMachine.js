@@ -70,20 +70,20 @@ export default function ClankVM(osap) {
 
   this.motors = {
     X: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(1).end()),    // 1
-    // YL: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).bfwd(2).end()),   // 2
-    // YR: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).bfwd(3).end()),   // 3
-    // Z: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).bfwd(4).end()),    // 4
-    // E: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).bfwd(6).end()),    // 6
+    YL: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(2).end()),   // 2
+    YR: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(3).end()),   // 3
+    Z: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(4).end()),    // 4
+    E: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(6).end()),    // 6
   }
 
   let motorCurrents = [0.5, 0.5, 0.5, 0.5, 0.5]
   this.setMotorCurrents = async () => {
     try {
       await this.motors.X.setCScale(motorCurrents[0])
-      // await this.motors.YL.setCScale(motorCurrents[1])
-      // await this.motors.YR.setCScale(motorCurrents[2])
-      // await this.motors.Z.setCScale(motorCurrents[3])
-      //await this.motors.E.setCScale(motorCurrents[4])
+      await this.motors.YL.setCScale(motorCurrents[1])
+      await this.motors.YR.setCScale(motorCurrents[2])
+      await this.motors.Z.setCScale(motorCurrents[3])
+      await this.motors.E.setCScale(motorCurrents[4])
     } catch (err) {
       console.error('bad motor current set')
       throw err
@@ -96,10 +96,10 @@ export default function ClankVM(osap) {
   this.disableMotors = async () => {
     try {
       await this.motors.X.setCScale(0)
-      // await this.motors.YL.setCScale(0)
-      // await this.motors.YR.setCScale(0)
-      // await this.motors.Z.setCScale(0)
-      // await this.motors.E.setCScale(0)
+      await this.motors.YL.setCScale(0)
+      await this.motors.YR.setCScale(0)
+      await this.motors.Z.setCScale(0)
+      await this.motors.E.setCScale(0)
     } catch (err) {
       console.error('bad motor disable set')
       throw err
@@ -119,38 +119,38 @@ export default function ClankVM(osap) {
       console.error('bad x motor init')
       throw err
     }
-    // try {
-    //   await this.motors.YL.setAxisPick(1)
-    //   await this.motors.YL.setAxisInversion(true)
-    //   await this.motors.YL.setSPU(320)
-    // } catch (err) {
-    //   console.error('bad yl motor init')
-    //   throw err
-    // }
-    // try {
-    //   await this.motors.YR.setAxisPick(1)
-    //   await this.motors.YR.setAxisInversion(false)
-    //   await this.motors.YR.setSPU(320)
-    // } catch (err) {
-    //   console.error('bad yr motor init')
-    //   throw err
-    // }
-    // try {
-    //   await this.motors.Z.setAxisPick(2)
-    //   await this.motors.Z.setAxisInversion(false)
-    //   await this.motors.Z.setSPU(924.444444)
-    // } catch (err) {
-    //   console.error('bad z motor init')
-    //   throw err
-    // }
-    // try {
-    //   await this.motors.E.setAxisPick(3)
-    //   await this.motors.E.setAxisInversion(true)
-    //   await this.motors.E.setSPU(550)
-    // } catch (err) {
-    //   console.error('bad e motor init')
-    //   throw err
-    // }
+    try {
+      await this.motors.YL.setAxisPick(1)
+      await this.motors.YL.setAxisInversion(true)
+      await this.motors.YL.setSPU(320)
+    } catch (err) {
+      console.error('bad yl motor init')
+      throw err
+    }
+    try {
+      await this.motors.YR.setAxisPick(1)
+      await this.motors.YR.setAxisInversion(false)
+      await this.motors.YR.setSPU(320)
+    } catch (err) {
+      console.error('bad yr motor init')
+      throw err
+    }
+    try {
+      await this.motors.Z.setAxisPick(2)
+      await this.motors.Z.setAxisInversion(false)
+      await this.motors.Z.setSPU(924.444444)
+    } catch (err) {
+      console.error('bad z motor init')
+      throw err
+    }
+    try {
+      await this.motors.E.setAxisPick(3)
+      await this.motors.E.setAxisInversion(true)
+      await this.motors.E.setSPU(550)
+    } catch (err) {
+      console.error('bad e motor init')
+      throw err
+    }
     await this.setMotorCurrents()
   }
 
