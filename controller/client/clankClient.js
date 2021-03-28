@@ -30,13 +30,70 @@ import { SaveFile } from '../osapjs/client/utes/saveFile.js'
 
 console.log("hello clank controller")
 
-// an instance of some osap capable thing (the virtual object)
-// that will appear on the network, be virtually addressable
+// the osap root node:
 let osap = new OSAP()
-osap.name = "clank client"
-osap.description = "clank cz browser interface"
 
 let grid = new Grid()
+
+// -------------------------------------------------------- SETUP NETWORK / PORT 
+
+let wscVPort = osap.vPort()
+
+let LOGPHY = false
+
+// to test these systems, the client (us) will kickstart a new process
+// on the server, and try to establish connection to it.
+console.log("making client-to-server request to start remote process,")
+console.log("and connecting to it w/ new websocket")
+// ok, let's ask to kick a process on the server,
+// in response, we'll get it's IP and Port,
+// then we can start a websocket client to connect there,
+// automated remote-proc. w/ vPort & wss medium,
+// for args, do '/processName.js?args=arg1,arg2'
+
+jQuery.get('/startLocal/osapSerialBridge.js', (res) => {
+  if (res.includes('OSAP-wss-addr:')) {
+    let addr = res.substring(res.indexOf(':') + 2)
+    if (addr.includes('ws://')) {
+      let status = "opening"
+      wscVPort.cts = () => {
+        if (status == "open") {
+          return true
+        } else {
+          return false
+        }
+      }
+      // start up, 
+      console.log('starting socket to remote at', addr)
+      let ws = new WebSocket(addr)
+      ws.binaryType = "arraybuffer"
+      // opens, 
+      ws.onopen = (evt) => {
+        status = "open"
+        // implement rx
+        ws.onmessage = (msg) => {
+          let uint = new Uint8Array(msg.data)
+          wscVPort.receive(uint)
+        }
+        // implement tx 
+        wscVPort.send = (buffer) => {
+          if (LOGPHY) console.log('PHY WSC Send', buffer)
+          ws.send(buffer)
+        }
+      }
+      ws.onerror = (err) => {
+        status = "closed"
+        console.log('sckt err', err)
+      }
+      ws.onclose = (evt) => {
+        status = "closed"
+        console.log('sckt closed', evt)
+      }
+    }
+  } else {
+    console.error('remote OSAP not established', res)
+  }
+})
 
 // -------------------------------------------------------- THE VM
 
@@ -46,33 +103,11 @@ let vm = new ClankVM(osap)
 // -------------------------------------------------------- MOTION FEED
 
 // panel, 
-let gCodePanel = new GCodePanel(10, 10)
-
-// pipe moves 2 machine 
-window.eForward = 0
-window.eRetract = 0
-let moveInput = new Input()
-gCodePanel.moveOut.attach(moveInput)
-moveInput.addListener((move) => {
-  return new Promise((resolve, reject) => {
-    move.rate = move.rate // ?
-    /*
-    if(move.position.E > 0){
-      window.eForward += move.position.E
-    } else {
-      window.eRetract += move.position.E
-    }
-    resolve()
-    return
-    */
-    vm.addMoveToQueue(move).then(() => {
-      resolve()
-    }).catch((err) => { reject(err) })
-  })
-})
+let gCodePanel = new GCodePanel(vm, 10, 10)
 
 let jogBox = new JogBox(240, 10, vm)
 
+/*
 // this is... kind of buggy. button state sometimes straightforwards, sometimes callback hell 
 let posBtn = new Button(430, 10, 344, 14, 'pos')
 let posLp = false
@@ -488,64 +523,4 @@ loadBtn.onClick(() => {
   loadLp = true
   lp()
 })
-
-// -------------------------------------------------------- STARTUP LOCAL
-
-let wscVPort = osap.vPort()
-wscVPort.name = 'websocket client'
-wscVPort.maxSegLength = 1024
-
-let LOGPHY = false
-
-// to test these systems, the client (us) will kickstart a new process
-// on the server, and try to establish connection to it.
-console.log("making client-to-server request to start remote process,")
-console.log("and connecting to it w/ new websocket")
-// ok, let's ask to kick a process on the server,
-// in response, we'll get it's IP and Port,
-// then we can start a websocket client to connect there,
-// automated remote-proc. w/ vPort & wss medium,
-// for args, do '/processName.js?args=arg1,arg2'
-
-jQuery.get('/startLocal/osapl-usb-bridge.js', (res) => {
-  if (res.includes('OSAP-wss-addr:')) {
-    let addr = res.substring(res.indexOf(':') + 2)
-    if (addr.includes('ws://')) {
-      let status = EP.PORTSTATUS.OPENING
-      wscVPort.status = () => { return status }
-      console.log('starting socket to remote at', addr)
-      let ws = new WebSocket(addr)
-      // opens, 
-      ws.onopen = (evt) => {
-        status = EP.PORTSTATUS.OPEN
-        // implement rx
-        ws.onmessage = (msg) => {
-          msg.data.arrayBuffer().then((buffer) => {
-            let uint = new Uint8Array(buffer)
-            if (LOGPHY) console.log('PHY WSC Recv')
-            if (LOGPHY) TS.logPacket(uint)
-            wscVPort.receive(uint)
-          }).catch((err) => {
-            console.error(err)
-          })
-        }
-        // implement tx 
-        wscVPort.send = (buffer) => {
-          if (LOGPHY) console.log('PHY WSC Send', buffer)
-          ws.send(buffer)
-        }
-      }
-      ws.onerror = (err) => {
-        status = EP.PORTSTATUS.CLOSED
-        console.log('sckt err', err)
-      }
-      ws.onclose = (evt) => {
-        status = EP.PORTSTATUS.CLOSED
-        console.log('sckt closed', evt)
-      }
-    }
-  } else {
-    console.error('remote OSAP not established', res)
-  }
-})
-
+*/

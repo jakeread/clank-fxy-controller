@@ -1,36 +1,22 @@
 #include <Arduino.h>
 
 #include "drivers/indicators.h"
-#include "osape/osap/osap.h"
+#include "osape/utils/d51ClockBoss.h"
 
-#include "osape/utils/clocks_d51.h"
-#include "osape/ucbus/ucbus_head.h"
-
-// should eventually just be this, 
 #include "smoothie/SmoothieRoll.h"
 
-// osap 
-OSAP* osap = new OSAP("cz head");
-#include "osape/osap/vport_usbserial.h"
-VPort_USBSerial* vPortSerial = new VPort_USBSerial(); 
-#include "osape/osap/vport_ucbus_head.h"
-VPort_UCBus_Head* vPortUcBusHead = new VPort_UCBus_Head();
+#include "osape/osap/osap.h"
+#include "osape/osap/vt_usbSerial.h"
+#include "osape/osap/vt_ucBusHead.h"
 
-// adhoc reply 
-uint8_t reply[1024];
-uint16_t rl = 0;
+#include "osape/ucbus/ucBusHead.h"
 
-uint8_t replyBlankPck[1024];
-uint16_t replyBlankPl = 0;
-uint16_t replyBlankPtr = 0;
-uint16_t replyBlankSegsize = 0;
-VPort* replyBlankVp;
-uint16_t replyBlankVpi = 0;
-uint16_t lastQueueSpaceTxd = 0;
+#include "osape/osap/osapLoop.h"
+#include "osape/utils/syserror.h"
 
-boolean needNewEmptySpaceReply = false;
+// -------------------------------------------------------- SMOOTHIE HANDLES 
+// *should* go to smoothieRoll.h, duh 
 
-// these should be in the smoothieroll / module 
 boolean smoothie_is_queue_empty(void){
   return conveyor->queue.is_empty();
 }
@@ -43,36 +29,10 @@ boolean smoothie_is_moving(void){
         || !smoothie_is_queue_empty());
 }
 
-uint16_t testCount = 0;
-uint8_t testPacket[8] = {1, 3, 5, 7, 9, 13, 17, 23};
-uint8_t testReturnPacket[1024];
+// -------------------------------------------------------- OSAP ENDPOINTS SETUP
 
-// pck[ptr] == DK_APP
-// app packets depricated in favour of endpoints 
-void OSAP::handleAppPacket(uint8_t *pck, uint16_t ptr, pckm_t* pckm){
-  pckm->vpa->clear(pckm->location);
-}
+// -------------------------------------------------------- MOVE QUEUE ENDPOINT 
 
-// -------------------------------------------------------- OSAP ENDPOINTS TEST
-
-unsigned long wait = 500;
-unsigned long last = millis();
-
-// ENDPOINT 0 
-boolean onTestData(uint8_t* data, uint16_t len){
-  // test test, 
-  unsigned long now = millis();
-  if(last + wait < now){
-    last = now;
-    return true;
-  } else {
-    return false;
-  }
-}
-Endpoint* testEP = osap->endpoint(onTestData);
-uint8_t qtest[6] = { 12, 24, 48, 96, 48, 24 };
-
-// ENDPOINT 1
 boolean onMoveData(uint8_t* data, uint16_t len){
   // can we load it?
   if(!conveyor->is_queue_full()){
@@ -102,10 +62,17 @@ boolean onMoveData(uint8_t* data, uint16_t len){
     return false;
   }
 }
-Endpoint* moveEP = osap->endpoint(onMoveData);
 
-// ENDPOINT 2
-boolean onPositionData(uint8_t* data, uint16_t len){
+vertex_t* moveQueueEp = osapBuildEndpoint("moveQueue", onMoveData, nullptr);  // 2
+
+// -------------------------------------------------------- POSITION ENDPOINT 
+
+boolean onPositionSet(uint8_t* data, uint16_t len);
+boolean beforePositionQuery(void);
+
+vertex_t* positionEp = osapBuildEndpoint("position", onPositionSet, beforePositionQuery); // 3
+
+boolean onPositionSet(uint8_t* data, uint16_t len){
   // only if it's not moving, 
   if(smoothie_is_moving()){
     return false;
@@ -123,25 +90,55 @@ boolean onPositionData(uint8_t* data, uint16_t len){
     return true;
   }
 }
-Endpoint* posEP = osap->endpoint(onPositionData);
 
-// ENDPOINT 3
-boolean onMotionEP(uint8_t* data, uint16_t len){
-  // this is also just a query for the time being ... clear it, 
-  return true;
+boolean beforePositionQuery(void){
+  // write new pos data periodically, 
+  uint8_t posData[16];
+  uint16_t poswptr = 0;
+  ts_writeFloat32(smoothieRoll->actuators[0]->floating_position, posData, &poswptr);
+  ts_writeFloat32(smoothieRoll->actuators[1]->floating_position, posData, &poswptr);
+  ts_writeFloat32(smoothieRoll->actuators[2]->floating_position, posData, &poswptr);
+  ts_writeFloat32(smoothieRoll->actuators[3]->floating_position, posData, &poswptr);
+  memcpy(positionEp->ep->data, posData, 16);
+  positionEp->ep->dataLen = 16;
+  return true; 
 }
-Endpoint* motionEP = osap->endpoint(onMotionEP);
 
-// ENDPOINT 4 
-boolean onWaitTimeEP(uint8_t* data, uint16_t len){
-  // writes a wait time for the queue: handy to shorten this up for jogging 
+// -------------------------------------------------------- MOTION STATE EP 
+
+boolean beforeMotionStateQuery(void);
+
+vertex_t* motionStateEp = osapBuildEndpoint("motionState", nullptr, beforeMotionStateQuery);  // 4
+
+boolean beforeMotionStateQuery(void){
+  uint8_t motion;
+  if(smoothieRoll->actuators[0]->is_moving() || smoothieRoll->actuators[1]->is_moving() || smoothieRoll->actuators[2]->is_moving()){
+    motion = true;
+  } else {
+    motion = false;
+  }
+  motionStateEp->ep->data[0] = motion;
+  motionStateEp->ep->dataLen = 1;
+  sysError("motion query " + String(motion));
+  return true; 
+}
+
+// -------------------------------------------------------- WAIT TIME EP 
+
+boolean onWaitTimeData(uint8_t* data, uint16_t len){
+  // writes (in ms) how long to wait the queue before new moves are executed 
+  // i.e. stack flow hysteresis 
   uint32_t ms;
   uint16_t ptr = 0;
   ts_readUint32(&ms, data, &ptr);
   conveyor->setWaitTime(ms);
+  sysError("set wait " + String(ms));
   return true;
 }
-Endpoint* waitTimeEP = osap->endpoint(onWaitTimeEP);
+
+vertex_t* waitTimeEp = osapBuildEndpoint("waitTime", onWaitTimeData, nullptr);  // 5 
+
+/*
 
 // ENDPOINT 5
 boolean onAccelsEP(uint8_t* data, uint16_t len){
@@ -200,6 +197,7 @@ boolean onSpeedQuery(void){
   speedQueryEP->write(speedData, 16);
   return true;
 }
+*/
 
 // -------------------------------------------------------- SETUP 
 
@@ -211,17 +209,26 @@ void setup() {
   DEBUG3PIN_SETUP;
   DEBUG4PIN_SETUP;
   // osap
-  osap->description = "smoothie port and stepper driver";
-  osap->addVPort(vPortSerial);
-  osap->addVPort(vPortUcBusHead);
+  osapSetup();
+  // ports 
+  vt_usbSerial_setup();
+  osapAddVertex(vt_usbSerial);    // 0
+  vt_ucBusHead_setup();
+  osapAddVertex(vt_ucBusHead);    // 1
+  // move to queue 
+  osapAddVertex(moveQueueEp);     // 2
+  // position 
+  osapAddVertex(positionEp);      // 3
+  // motion state 
+  osapAddVertex(motionStateEp);   // 4
+  // set wait time (ms)
+  osapAddVertex(waitTimeEp);      // 5
   // smoothie 
   smoothieRoll->init();
   // 100kHz base (10us period)
   // 25kHz base (40us period)
-  d51_clock_boss->start_ticker_a(40);
-  // ... 
-  testEP->write(qtest, 6);
-
+  d51ClockBoss->start_ticker_a(40);
+  // l i g h t s 
   ERRLIGHT_ON;
   CLKLIGHT_ON;
 }
@@ -229,48 +236,16 @@ void setup() {
 uint32_t ledTickCount = 0;
 void loop() {
   //DEBUG2PIN_TOGGLE;
-  osap->loop();
+  osapLoop();
   conveyor->on_idle(nullptr);
   // blink
   ledTickCount ++;
   if(ledTickCount > 1024){
-    // write new pos data periodically, 
-    uint8_t posData[16];
-    uint16_t poswptr = 0;
-    ts_writeFloat32(smoothieRoll->actuators[0]->floating_position, posData, &poswptr);
-    ts_writeFloat32(smoothieRoll->actuators[1]->floating_position, posData, &poswptr);
-    ts_writeFloat32(smoothieRoll->actuators[2]->floating_position, posData, &poswptr);
-    ts_writeFloat32(smoothieRoll->actuators[3]->floating_position, posData, &poswptr);
-    posEP->write(posData, 16);
-    // and write motion:
-    uint8_t motion;
-    if(smoothieRoll->actuators[0]->is_moving() || smoothieRoll->actuators[1]->is_moving() || smoothieRoll->actuators[2]->is_moving()){
-      motion = true;
-    } else {
-      motion = false;
-    }
-    motionEP->write(&motion, 1);
     // blink 
     DEBUG1PIN_TOGGLE;
     ledTickCount = 0;
   }
 } // end loop 
-
-/*
-ERRLIGHT_TOGGLE;
-uint16_t wptr = 0;
-txpck[wptr ++] = DK_VMODULE;
-ts_writeUint16(0, txpck, &wptr);    // from the 0th software module at this node, 
-ts_writeUint16(0, txpck, &wptr);    // and the 0th data object there
-ts_writeUint16(0, txpck, &wptr);    // to the 0th software module at end of route, 
-ts_writeUint16(0, txpck, &wptr);    // and the 0th data object there 
-// type it, and write it 
-txpck[wptr ++] = TK_UINT32;
-float reading = readThermA(); // PA04 is our THERM_A, analog pin 4 in arduino land 
-ts_writeFloat32(reading, txpck, &wptr);
-// transmit, 
-osap->send(txroute, 11, 512, txpck, wptr);
-*/
 
 // runs on period defined by timer_a setup: 
 volatile uint8_t tick_count = 0;
@@ -283,7 +258,7 @@ void TC0_Handler(void){
   TC0->COUNT32.INTFLAG.bit.MC1 = 1;
   tick_count ++;
   // do bus action first: want downstream clocks to be deterministic-ish
-  ucBusHead->timerISR(); // transmits one full word at this HZ. 
+  ucBusHead_timerISR();
   // do step tick 
   smoothieRoll->step_tick();
   // every n ticks, ship position? 
@@ -303,7 +278,7 @@ void TC0_Handler(void){
     ts_writeFloat32(smoothieRoll->actuators[3]->floating_position, motion_packet, &mpptr);
     // write packet, put on ucbus
     //DEBUG3PIN_ON;
-    ucBusHead->transmit_a(motion_packet, 17);
+    ucBusHead_transmitA(motion_packet, 17);
     //DEBUG3PIN_OFF;
   }
 }

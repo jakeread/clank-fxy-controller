@@ -29,13 +29,21 @@ LC:   7
 BED:  8
 */
 
+/* cz-head
+0: serialport 
+1: bus head
+2: add to move queue 
+3: set position 
+4: get position 
+*/
+
 export default function ClankVM(osap, route) {
 
   // ------------------------------------------------------ MOTION
   // ok: we make an 'endpoint' that will transmit moves,
   let moveEP = osap.endpoint()
   // add the machine head's route to it, 
-  moveEP.addRoute(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 1), 512)
+  moveEP.addRoute(PK.route().sib(0).pfwd().sib(1).pfwd().sib(2).end()) //TS.route().portf(0).portf(1).end(), TS.endpoint(0, 1), 512)
   // and set a long timeout,
   moveEP.setTimeoutLength(60000)
   // move like: { position: {X: num, Y: num, Z: num}, rate: num }
@@ -57,7 +65,7 @@ export default function ClankVM(osap, route) {
     }
     // do the networking, 
     return new Promise((resolve, reject) => {
-      moveEP.write(datagram).then(() => {
+      moveEP.write(datagram, "acked").then(() => {
         resolve()
       }).catch((err) => {
         reject(err)
@@ -67,7 +75,7 @@ export default function ClankVM(osap, route) {
 
   // to set the current position, 
   let setPosEP = osap.endpoint()
-  setPosEP.addRoute(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 2), 512)
+  setPosEP.addRoute(PK.route().sib(0).pfwd().sib(1).pfwd().sib(3).end())//TS.route().portf(0).portf(1).end(), TS.endpoint(0, 2), 512)
   setPosEP.setTimeoutLength(10000)
   this.setPos = (pos) => {
     let wptr = 0
@@ -82,14 +90,14 @@ export default function ClankVM(osap, route) {
     }
     // ship it 
     return new Promise((resolve, reject) => {
-      setPosEP.write(datagram).then(() => {
+      setPosEP.write(datagram, "acked").then(() => {
         resolve()
       }).catch((err) => { reject(err) })
     })
   }
 
   // an a 'query' to check current position 
-  let posQuery = osap.query(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 2), 512)
+  let posQuery = osap.query(PK.route().child(0).pfwd().sib(1).pfwd().sib(3).end()) //TS.route().portf(0).portf(1).end(), TS.endpoint(0, 2), 512)
   this.getPos = () => {
     return new Promise((resolve, reject) => {
       posQuery.pull().then((data) => {
@@ -104,25 +112,9 @@ export default function ClankVM(osap, route) {
     })
   }
 
-  // query for (time of query) speeds 
-  let vQuery = osap.query(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 7), 512)
-  this.getSpeeds = () => {
-    return new Promise((resolve, reject) => {
-      vQuery.pull().then((data) => {
-        let speeds = {
-          X: TS.read('float32', data, 0, true),
-          Y: TS.read('float32', data, 4, true),
-          Z: TS.read('float32', data, 8, true),
-          E: TS.read('float32', data, 12, true)
-        }
-        resolve(speeds)
-      }).catch((err) => { reject(err) })
-    })
-  }
-
   // another query to see if it's currently moving, 
   // update that endpoint so we can 'write halt' / 'write go' with a set 
-  let motionQuery = osap.query(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 3), 512)
+  let motionQuery = osap.query(PK.route().child(0).pfwd().sib(1).pfwd().sib(4).end())//TS.route().portf(0).portf(1).end(), TS.endpoint(0, 3), 512)
   this.awaitMotionEnd = () => {
     return new Promise((resolve, reject) => {
       let check = () => {
@@ -142,13 +134,30 @@ export default function ClankVM(osap, route) {
 
   // an endpoint to write 'wait time' on the remote,
   let waitTimeEP = osap.endpoint()
-  waitTimeEP.addRoute(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 4), 512)
+  waitTimeEP.addRoute(PK.route().sib(0).pfwd().sib(1).pfwd().sib(5).end())//TS.route().portf(0).portf(1).end(), TS.endpoint(0, 4), 512)
   this.setWaitTime = (ms) => {
     return new Promise((resolve, reject) => {
       let datagram = new Uint8Array(4)
       TS.write('uint32', ms, datagram, 0, true)
-      waitTimeEP.write(datagram).then(() => {
+      waitTimeEP.write(datagram, "acked").then(() => {
         resolve()
+      }).catch((err) => { reject(err) })
+    })
+  }
+
+  /*
+  // query for (time of query) speeds 
+  let vQuery = osap.query(TS.route().portf(0).portf(1).end(), TS.endpoint(0, 7), 512)
+  this.getSpeeds = () => {
+    return new Promise((resolve, reject) => {
+      vQuery.pull().then((data) => {
+        let speeds = {
+          X: TS.read('float32', data, 0, true),
+          Y: TS.read('float32', data, 4, true),
+          Z: TS.read('float32', data, 8, true),
+          E: TS.read('float32', data, 12, true)
+        }
+        resolve(speeds)
       }).catch((err) => { reject(err) })
     })
   }
@@ -195,7 +204,9 @@ export default function ClankVM(osap, route) {
         resolve()
       }).catch((err) => { reject(err) })
     })
-  }
+  } 
+
+  */
 
   // ------------------------------------------------------ MOTORS
 
@@ -221,6 +232,8 @@ export default function ClankVM(osap, route) {
   BED:  8
   */
 
+  /*
+
   this.motors = {
     X: new MotorVM(osap, TS.route().portf(0).portf(1).busf(1, 1).end()),
     YL: new MotorVM(osap, TS.route().portf(0).portf(1).busf(1, 2).end()),
@@ -232,12 +245,10 @@ export default function ClankVM(osap, route) {
   let motorCurrents = [0.5, 0.5, 0.5, 0.5, 0.5]
   this.setMotorCurrents = async () => {
     try {
-      /*
-      await this.motors.X.setCScale(motorCurrents[0])
-      await this.motors.YL.setCScale(motorCurrents[1])
-      await this.motors.YR.setCScale(motorCurrents[2])
-      await this.motors.Z.setCScale(motorCurrents[3])
-      */
+      // await this.motors.X.setCScale(motorCurrents[0])
+      // await this.motors.YL.setCScale(motorCurrents[1])
+      // await this.motors.YR.setCScale(motorCurrents[2])
+      // await this.motors.Z.setCScale(motorCurrents[3])
       //await this.motors.E.setCScale(motorCurrents[4])
     } catch (err) {
       console.error('bad motor current set')
@@ -266,40 +277,38 @@ export default function ClankVM(osap, route) {
     // could do them all parallel: like this halts if i.e. YL fails,
     // where it might just be that motor with an error... that'd be catching / continuing, accumulating
     // errors, and reporting them in a group 
-    /*
-    try {
-      await this.motors.X.setAxisPick(0)
-      await this.motors.X.setAxisInversion(false)
-      await this.motors.X.setSPU(320)
-    } catch (err) {
-      console.error('bad x motor init')
-      throw err
-    }
-    try {
-      await this.motors.YL.setAxisPick(1)
-      await this.motors.YL.setAxisInversion(true)
-      await this.motors.YL.setSPU(320)
-    } catch (err) {
-      console.error('bad yl motor init')
-      throw err
-    }
-    try {
-      await this.motors.YR.setAxisPick(1)
-      await this.motors.YR.setAxisInversion(false)
-      await this.motors.YR.setSPU(320)
-    } catch (err) {
-      console.error('bad yr motor init')
-      throw err
-    }
-    try {
-      await this.motors.Z.setAxisPick(2)
-      await this.motors.Z.setAxisInversion(false)
-      await this.motors.Z.setSPU(924.444444)
-    } catch (err) {
-      console.error('bad z motor init')
-      throw err
-    }
-    */
+    // try {
+    //   await this.motors.X.setAxisPick(0)
+    //   await this.motors.X.setAxisInversion(false)
+    //   await this.motors.X.setSPU(320)
+    // } catch (err) {
+    //   console.error('bad x motor init')
+    //   throw err
+    // }
+    // try {
+    //   await this.motors.YL.setAxisPick(1)
+    //   await this.motors.YL.setAxisInversion(true)
+    //   await this.motors.YL.setSPU(320)
+    // } catch (err) {
+    //   console.error('bad yl motor init')
+    //   throw err
+    // }
+    // try {
+    //   await this.motors.YR.setAxisPick(1)
+    //   await this.motors.YR.setAxisInversion(false)
+    //   await this.motors.YR.setSPU(320)
+    // } catch (err) {
+    //   console.error('bad yr motor init')
+    //   throw err
+    // }
+    // try {
+    //   await this.motors.Z.setAxisPick(2)
+    //   await this.motors.Z.setAxisInversion(false)
+    //   await this.motors.Z.setSPU(924.444444)
+    // } catch (err) {
+    //   console.error('bad z motor init')
+    //   throw err
+    // }
     try {
       await this.motors.E.setAxisPick(3)
       await this.motors.E.setAxisInversion(true)
@@ -454,33 +463,32 @@ export default function ClankVM(osap, route) {
     [0, -50, -100, -150, -200, -250, -300, -500, -1000]]
   this.loadcell.setObservations(readings, 'grams')
 
-  /*
-  this.pullExtruderTest = () => {
-    return new Promise((resolve, reject) => {
-      let res = {
-        temp: undefined, 
-        speed: undefined,
-        load: undefined
-      }
-      this.tvm[0].getExtruderTemp().then((temp) => {
-        res.temp = temp
-        return delay(10)
-      }).then(() => {
-        return this.getSpeeds()
-      }).then((speeds) => {
-        res.speed = speeds.E 
-        return delay(10)
-      }).then(() => {
-        return this.loadcell.getReading()
-      }).then((load) => {
-        res.load = load
-        resolve(res)
-      }).catch((err) => {
-        reject(err)
-      })
-    })
-  }
-  */
+  // this.pullExtruderTest = () => {
+  //   return new Promise((resolve, reject) => {
+  //     let res = {
+  //       temp: undefined, 
+  //       speed: undefined,
+  //       load: undefined
+  //     }
+  //     this.tvm[0].getExtruderTemp().then((temp) => {
+  //       res.temp = temp
+  //       return delay(10)
+  //     }).then(() => {
+  //       return this.getSpeeds()
+  //     }).then((speeds) => {
+  //       res.speed = speeds.E 
+  //       return delay(10)
+  //     }).then(() => {
+  //       return this.loadcell.getReading()
+  //     }).then((load) => {
+  //       res.load = load
+  //       resolve(res)
+  //     }).catch((err) => {
+  //       reject(err)
+  //     })
+  //   })
+  // }
+
   this.pullExtruderTest = () => {
     return new Promise((resolve, reject) => {
       let res = {
@@ -510,5 +518,5 @@ export default function ClankVM(osap, route) {
       }).catch((err) => { reject(err) })
     })
   }
-
-}
+  */
+} // end clank vm 
