@@ -14,50 +14,54 @@ no warranty is provided, and users accept all liability.
 
 import { PK, TS, VT, EP, TIMES } from '../../osapjs/core/ts.js'
 
-export default function TempVM(osap, route){
-    let tempSetEP = osap.endpoint()
-    tempSetEP.addRoute(route, TS.endpoint(0, 0), 512)
-    this.setExtruderTemp = (temp) => {
-      return new Promise((resolve, reject) => {
-        let datagram = new Uint8Array(4)
-        TS.write('float32', temp, datagram, 0, true)
-        tempSetEP.write(datagram).then(() => {
-          resolve()
-        }).catch((err) => { reject(err) })
-      })
-    }
-  
-    let tempQuery = osap.query(route, TS.endpoint(0, 1), 512)
-    this.getExtruderTemp = () => {
-      return new Promise((resolve, reject) => {
-        tempQuery.pull().then((data) => {
-          let temp = TS.read('float32', data, 0, true)
-          resolve(temp)
-        }).catch((err) => { reject(err) })
-      })
-    }
-  
-    let outputQuery = osap.query(route, TS.endpoint(0, 2), 512)
-    this.getExtruderTempOutput = () => {
-      return new Promise((resolve, reject) => {
-        outputQuery.pull().then((data) => {
-          let effort = TS.read('float32', data, 0, true)
-          resolve(effort)
-        }).catch((err) => { reject(err) })
-      })
-    }
-  
-    let tempPIDTermsEP = osap.endpoint()
-    tempPIDTermsEP.addRoute(route, TS.endpoint(0, 3), 512)
-    this.setPIDTerms = (vals) => {
-      return new Promise((resolve, reject) => {
-        let datagram = new Uint8Array(12)
-        TS.write('float32', vals[0], datagram, 0, true)
-        TS.write('float32', vals[1], datagram, 4, true)
-        TS.write('float32', vals[2], datagram, 8, true)
-        tempPIDTermsEP.write(datagram).then(() => {
-          resolve()
-        }).catch((err) => { reject(err) })
-      })
-    }
+export default function TempVM(osap, route) {
+  // set a temp 
+  let tempSetEP = osap.endpoint()
+  tempSetEP.addRoute(PK.route(route).sib(2).end())
+  this.setExtruderTemp = (temp) => {
+    return new Promise((resolve, reject) => {
+      let datagram = new Uint8Array(4)
+      TS.write('float32', temp, datagram, 0, true)
+      tempSetEP.write(datagram, "acked").then(() => {
+        resolve()
+      }).catch((err) => { reject(err) })
+    })
+  }
+
+  // query current temp 
+  let tempQuery = osap.query(PK.route(route).sib(3).end())
+  this.getExtruderTemp = () => {
+    return new Promise((resolve, reject) => {
+      tempQuery.pull().then((data) => {
+        let temp = TS.read('float32', data, 0, true)
+        resolve(temp)
+      }).catch((err) => { reject(err) })
+    })
+  }
+
+  // query current heater effort 
+  let outputQuery = osap.query(PK.route(route).sib(4).end())
+  this.getExtruderTempOutput = () => {
+    return new Promise((resolve, reject) => {
+      outputQuery.pull().then((data) => {
+        let effort = TS.read('float32', data, 0, true)
+        resolve(effort)
+      }).catch((err) => { reject(err) })
+    })
+  }
+
+  // set PID terms 
+  let tempPIDTermsEP = osap.endpoint()
+  tempPIDTermsEP.addRoute(PK.route(route).sib(5).end())
+  this.setPIDTerms = (vals) => {
+    return new Promise((resolve, reject) => {
+      let datagram = new Uint8Array(12)
+      TS.write('float32', vals[0], datagram, 0, true)
+      TS.write('float32', vals[1], datagram, 4, true)
+      TS.write('float32', vals[2], datagram, 8, true)
+      tempPIDTermsEP.write(datagram, "acked").then(() => {
+        resolve()
+      }).catch((err) => { reject(err) })
+    })
+  }
 }

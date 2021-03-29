@@ -43,16 +43,27 @@ OK, worked through some more indexing troubles and reverted to an older API for 
 
 Still some more route management... perhaps when adding to queries, assume swap of sib -> child (?) Just hot swapping in from .sib() to .child() then. 
 
-Seems to be all nearly working, but am not getting any motion. Should inspect interrupts, etc. 
-
 ## 2021 03 28 
 
 Carrying on with the motion stage... 
 
-- have the kind of 'motion core' up and running, should make this a js module 
-- make motor vm / motor code aligned 
-- swap cz-head board, plug test motor
-- test jog / etc 
+Seems to be all nearly working, but am not getting any motion. Should inspect interrupts, etc. Had bad type keys for the bus, fixed now. 
+
+Alright so this is jogging one motor. Should be able to flash & connect the rest, check full motion. 
+
+Rad, full motion system looks good. 
+
+OK, ready to get into the heater modules. Going to finish this tonight, if controls lab is complete. 
+
+## 2021 03 29 
+
+OFC not finished last night, still trudging. 
+
+- heater code (embedded) & test plots / test PID 
+- think... you're ready to get data for filippos? make a little script for that 
+- heater modules & plots 
+- loadcell module & plot 
+- moment of truth will be long poll on heater / loadcell... hope for no drops 
 
 ### Swap Tail
 

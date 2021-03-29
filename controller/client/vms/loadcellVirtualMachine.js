@@ -30,7 +30,7 @@ export default function LoadVM(osap, route) {
     lsq.setObservations(xy)
   }
 
-  let readingQuery = osap.query(route)
+  let readingQuery = osap.query(PK.route(route).sib(2).end())
   this.getReading = () => {
     return new Promise((resolve, reject) => {
       readingQuery.pull().then((data) => {

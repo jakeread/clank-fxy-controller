@@ -27,6 +27,10 @@ import { Button } from '../osapjs/client/interface/button.js'
 import { TextInput } from '../osapjs/client/interface/textInput.js'
 import { JogBox } from '../osapjs/client/components/jogBox.js'
 import { SaveFile } from '../osapjs/client/utes/saveFile.js'
+import TempPanel from '../osapjs/client/components/tempPanel.js'
+import TempVM from './vms/tempVirtualMachine.js'
+import LoadVM from './vms/loadcellVirtualMachine.js'
+import LoadPanel from '../osapjs/client/components/loadPanel.js'
 
 console.log("hello clank controller")
 
@@ -105,13 +109,41 @@ let vm = new ClankVM(osap)
 // panel, 
 let gCodePanel = new GCodePanel(vm, 10, 10)
 
+// init... 
+let initBtn = new Button(250, 10, 84, 104, 'init')
+initBtn.onClick(() => {
+  setupMotion().then(() => {
+    console.log('setup motor')
+    return vm.initMotors()
+  }).then(() => {
+    initBtn.good("ok", 500)
+  }).catch((err) => {
+    console.error(err)
+    initBtn.bad("err", 500)
+  })
+})
+
+let setStartBtn = new Button(250, 130, 84, 14, 'offset zero')
+setStartBtn.onClick(() => {
+  vm.motion.setPos({
+    X: 0,
+    Y: 0,
+    Z: 121.8,
+    E: 0
+  }).then(() => {
+    setStartBtn.good("ok", 500)
+  }).catch((err) => {
+    console.error(err)
+    setStartBtn.bad("err", 500)
+  })
+})
+
 // jog, 
-let jogBox = new JogBox(350, 10, vm)
+let jogBox = new JogBox(250, 170, vm)
 
-// init & rates 
-
+// rates / accel setup 
 let ratesXpos = 250 
-let ratesYpos = 130
+let ratesYpos = 410
 let setRatesBtn = new Button(ratesXpos, ratesYpos, 84, 24, 'set acc & max fr')
 let accText = new Button(ratesXpos, ratesYpos + 40, 84, 14, 'mm/sec^2')
 let xAccVal = new TextInput(ratesXpos, ratesYpos + 70, 90, 20, '10000')
@@ -158,19 +190,24 @@ let setupMotion = () => {
   })
 }
 
-// init... 
-let initBtn = new Button(250, 10, 84, 104, 'init')
-initBtn.onClick(() => {
-  setupMotion().then(() => {
-    console.log('setup motor')
-    return vm.initMotors()
-  }).then(() => {
-    initBtn.good("ok", 500)
-  }).catch((err) => {
-    console.error(err)
-    initBtn.bad("err", 500)
-  })
-})
+// -------------------------------------------------------- TEMP CONTROLLER 
+
+// working into temps:
+
+let hotendVm = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(7).end())
+let hotendPanel = new TempPanel(hotendVm, 350, 10, 220, "hotend")
+
+let bedVm = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(9).end())
+let bedPanel = new TempPanel(bedVm, 350, 420, 70, "bed")
+
+// -------------------------------------------------------- LOADCELL CONTROLLER
+
+let loadcellVm = new LoadVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(8).end())
+let loadPanel = new LoadPanel(loadcellVm, 350, 830, "HE loadcell")
+let readings = [
+  [-124000, -137000, -147000, -159000, -171000, -184000, -195000, -225000, -350000],
+  [0, -50, -100, -150, -200, -250, -300, -500, -1000]];
+loadcellVm.setObservations(readings, 'grams')
 
 /*
 // this is... kind of buggy. button state sometimes straightforwards, sometimes callback hell 
@@ -224,21 +261,6 @@ speedBtn.onClick(() => {
   }
 })
 
-let setStartBtn = new Button(360, 130, 94, 14, 'offset zero')
-setStartBtn.onClick(() => {
-  vm.motion.setPos({
-    X: 0,
-    Y: 0,
-    Z: 121.8,
-    E: 0
-  }).then(() => {
-    setStartBtn.good("ok", 500)
-  }).catch((err) => {
-    console.error(err)
-    setStartBtn.bad("err", 500)
-  })
-})
-
 let gotoZeroBtn = new Button(360, 160, 94, 14, 'goto zero')
 gotoZeroBtn.onClick(() => {
   vm.motion.addMoveToQueue({
@@ -256,105 +278,6 @@ gotoZeroBtn.onClick(() => {
     gotoZeroBtn.bad("err", 500)
   })
 })
-
-// -------------------------------------------------------- TEMP CONTROLLER 
-
-let tempController = (xPlace, yPlace, i, init) => {
-  let tvm = vm.tvm[i]
-
-  let tempSet = new TextInput(xPlace, yPlace, 110, 20, `${init}`)
-
-  let tempSetBtn = new Button(xPlace, yPlace + 30, 104, 14, 'set temp')
-  tempSetBtn.onClick(() => {
-    let temp = parseFloat(tempSet.value)
-    if (Number.isNaN(temp)) {
-      tempSetBtn.bad("parse err", 1000)
-      return
-    }
-    tvm.setExtruderTemp(temp).then(() => {
-      tempSetBtn.good("ok", 500)
-    }).catch((err) => {
-      console.error(err)
-      tempSetBtn.bad("err", 1000)
-    })
-  })
-
-  let tempCoolBtn = new Button(xPlace, yPlace + 60, 104, 14, 'cooldown')
-  tempCoolBtn.onClick(() => {
-    tvm.setExtruderTemp(0).then(() => {
-      tempCoolBtn.good("ok", 500)
-    }).catch((err) => {
-      console.error(err)
-      tempCoolBtn.bad("err", 500)
-    })
-  })
-
-  let tempPlot = new AutoPlot(xPlace + 120, yPlace, 420, 230)
-  tempPlot.setHoldCount(500)
-  //tempPlot.setYDomain(0, 100)
-  tempPlot.redraw()
-
-  let effortPlot = new AutoPlot(xPlace + 120, yPlace + 240, 420, 150)
-  effortPlot.setHoldCount(500)
-  //effortPlot.setYDomain(-10, 10)
-  effortPlot.redraw()
-
-  let tempLpBtn = new Button(xPlace, yPlace + 90, 104, 14, 'plot temp')
-  let tempLp = false
-  let tempLpCount = 0
-  tempLpBtn.onClick(() => {
-    if (tempLp) {
-      tempLp = false
-      tempLpBtn.good("stopped", 500)
-    } else {
-      let poll = () => {
-        if (!tempLp) return
-        tvm.getExtruderTemp().then((temp) => {
-          //console.log(temp)
-          tempLpCount++
-          tempPlot.pushPt([tempLpCount, temp])
-          tempPlot.redraw()
-          return tvm.getExtruderTempOutput()
-        }).then((effort) => {
-          //console.log(effort)
-          effortPlot.pushPt([tempLpCount, effort])
-          effortPlot.redraw()
-          setTimeout(poll, 100)
-        }).catch((err) => {
-          tempLp = false
-          console.error(err)
-          tempLpBtn.bad("err", 500)
-        })
-      }
-      tempLp = true
-      poll()
-    }
-  })
-
-  let pVal = new TextInput(xPlace, yPlace + 120, 110, 20, '-0.1')
-  let iVal = new TextInput(xPlace, yPlace + 150, 110, 20, '0.0')
-  let dVal = new TextInput(xPlace, yPlace + 180, 110, 20, '0.1')
-
-  let pidSetBtn = new Button(xPlace, yPlace + 210, 104, 14, 'set PID')
-  pidSetBtn.onClick(() => {
-    let p = parseFloat(pVal.value)
-    let i = parseFloat(iVal.value)
-    let d = parseFloat(dVal.value)
-    if (Number.isNaN(p) || Number.isNaN(i) || Number.isNaN(d)) {
-      pidSetBtn.bad("bad parse", 1000)
-      return
-    }
-    tvm.setPIDTerms([p, i, d]).then(() => {
-      pidSetBtn.good("ok", 500)
-    }).catch((err) => {
-      console.error(err)
-      pidSetBtn.bad("err", 1000)
-    })
-  })
-}
-
-tempController(240, 890, 0, 220)
-tempController(240, 1390, 1, 60)
 
 // -------------------------------------------------------- EXTRUDER TEST
 
