@@ -55,7 +55,7 @@ class StepTicker{
     public:
         StepTicker();
         static StepTicker* getInstance();
-        void init(void);
+        void init(float frequency);
         // go 
         void set_frequency( float frequency );
         // deleted this void set_unstep_time( float microseconds );

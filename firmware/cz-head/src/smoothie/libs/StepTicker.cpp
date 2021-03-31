@@ -37,9 +37,9 @@ StepTicker* stepTicker = StepTicker::getInstance();
 StepTicker::StepTicker(){
 }
 
-void StepTicker::init(void){
+void StepTicker::init(float frequency){
     // Default start values
-    this->set_frequency(100000);
+    this->set_frequency(frequency);
 
     this->num_motors = SR_NUM_MOTORS;
 
@@ -142,6 +142,9 @@ void StepTicker::step_tick (void){
                 motor[m]->stop_moving(); // let motor know it is no longer moving
             }
         }
+
+        // upd8 speed for queries 
+        //motor[m]->set_ticks_per_step(current_block->tick_info[m].steps_per_tick);
 
         // see if any motors are still moving after this tick
         if(motor[m]->is_moving()) still_moving = true;

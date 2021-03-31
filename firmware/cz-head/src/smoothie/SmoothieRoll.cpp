@@ -29,12 +29,12 @@ SmoothieRoll::SmoothieRoll(void){
     
 }
 
-void SmoothieRoll::init(void){
+void SmoothieRoll::init(float frequency){
     // make motors 
     for(uint8_t m = 0; m < SR_NUM_MOTORS; m ++){
         actuators[m] = new StepInterface();
     }
-    stepTicker->init();
+    stepTicker->init(frequency);
     stepTicker->start();
     conveyor->on_module_loaded();
     conveyor->start(SR_NUM_MOTORS);

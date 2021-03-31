@@ -7,6 +7,7 @@ driver interface hack for smoothie port
 */
 
 #include "StepInterface.h"
+#include "../../libs/StepTicker.h"
 
 StepInterface::StepInterface(void){}
 
@@ -37,7 +38,13 @@ float StepInterface::get_max_rate(void){
 }
 
 void StepInterface::set_max_rate(float rate){
+    // abs max is one step per step ticker frequency, 
+    // so is frequency / spu
+    float abs_max = stepTicker->get_frequency() / steps_per_mm;
     max_rate = fabsf(rate);
+    if(max_rate > abs_max){
+        max_rate = abs_max;
+    }
 }
 
 float StepInterface::get_accel(void){
@@ -48,6 +55,18 @@ void StepInterface::set_accel(float acc){
     accel = fabsf(acc);
 }
 
+void StepInterface::set_ticks_per_step(float tps){
+    current_ticks_per_step = tps;
+}
+
+float StepInterface::get_current_speed(void){
+    if(!moving){
+        return 0.0F;
+    } else {
+        return STEPTICKER_FROMFP(current_ticks_per_step) * stepTicker->get_frequency();
+    }
+}
+
 boolean StepInterface::step(void){
     // upd8 position, 
     if(direction){
@@ -56,10 +75,6 @@ boolean StepInterface::step(void){
         stepwise_position ++;
     }
     floating_position = stepwise_position * mm_per_step;
-    // track speed, 
-    now = micros();
-    current_speed = (mm_per_step * 1000000) / (now - last_tick);
-    last_tick = now;
     return moving;
 }
 
@@ -73,7 +88,6 @@ void StepInterface::start_moving(void){
 
 void StepInterface::stop_moving(void){
     moving = false;
-    current_speed = 0.0F;
 }
 
 boolean StepInterface::is_moving(void){

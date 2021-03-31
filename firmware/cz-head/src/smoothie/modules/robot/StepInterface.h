@@ -26,6 +26,10 @@ class StepInterface {
         float get_accel(void);
         void set_accel(float acc);
 
+        // util to track speed per motor:
+        void set_ticks_per_step(float tps);
+        float get_current_speed(void);
+
         boolean step(void);
         void set_direction(boolean dir);
         void start_moving(void);
@@ -36,15 +40,15 @@ class StepInterface {
         // for net interface, 
         volatile int32_t stepwise_position = 0;
         volatile float floating_position = 0.0F;
-        volatile float current_speed = 0.0F;
+        volatile float current_ticks_per_step = 0.0F;
 
     private:
         volatile boolean direction = false;
         volatile boolean moving = false;
 
-        float max_rate = 100.0F; // in mm/sec ? 
+        float max_rate = 10.0F; // in mm/sec ? 
         float accel = 100.0F; // in mm/sec/sec 
-        float steps_per_mm = 500.0F; // for everyone: this is a hack... actually we send floating posns to steppers, who deal with this config 
+        float steps_per_mm = 400.0F; // for everyone: this is a hack... actually we send floating posns to steppers, who deal with this config 
         float mm_per_step = 1 / steps_per_mm;
         int32_t last_milestone_steps = 0;
         float last_milestone_mm = 0;

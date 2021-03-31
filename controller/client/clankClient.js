@@ -31,6 +31,7 @@ import TempPanel from '../osapjs/client/components/tempPanel.js'
 import TempVM from './vms/tempVirtualMachine.js'
 import LoadVM from './vms/loadcellVirtualMachine.js'
 import LoadPanel from '../osapjs/client/components/loadPanel.js'
+import FilamentExperiment from '../osapjs/client/components/filamentExperiment.js'
 
 console.log("hello clank controller")
 
@@ -195,19 +196,23 @@ let setupMotion = () => {
 // working into temps:
 
 let hotendVm = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(7).end())
-let hotendPanel = new TempPanel(hotendVm, 350, 10, 220, "hotend")
+//let hotendPanel = new TempPanel(hotendVm, 350, 10, 220, "hotend")
 
 let bedVm = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(9).end())
-let bedPanel = new TempPanel(bedVm, 350, 420, 70, "bed")
+//let bedPanel = new TempPanel(bedVm, 350, 420, 70, "bed")
 
 // -------------------------------------------------------- LOADCELL CONTROLLER
 
 let loadcellVm = new LoadVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(8).end())
-let loadPanel = new LoadPanel(loadcellVm, 350, 830, "HE loadcell")
+//let loadPanel = new LoadPanel(loadcellVm, 350, 830, "HE loadcell")
 let readings = [
   [-124000, -137000, -147000, -159000, -171000, -184000, -195000, -225000, -350000],
   [0, -50, -100, -150, -200, -250, -300, -500, -1000]];
 loadcellVm.setObservations(readings, 'grams')
+
+// -------------------------------------------------------- Filament Data Gen 
+
+let dataGen = new FilamentExperiment(vm, hotendVm, loadcellVm, 350, 10)
 
 /*
 // this is... kind of buggy. button state sometimes straightforwards, sometimes callback hell 

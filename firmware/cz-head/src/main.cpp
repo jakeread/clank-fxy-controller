@@ -114,10 +114,10 @@ boolean beforeSpeedQuery(void){
   // collect actuator speeds, 
   uint8_t speedData[16];
   uint16_t wptr = 0;
-  ts_writeFloat32(smoothieRoll->actuators[0]->current_speed, speedData, &wptr);
-  ts_writeFloat32(smoothieRoll->actuators[1]->current_speed, speedData, &wptr);
-  ts_writeFloat32(smoothieRoll->actuators[2]->current_speed, speedData, &wptr);
-  ts_writeFloat32(smoothieRoll->actuators[3]->current_speed, speedData, &wptr);
+  ts_writeFloat32(smoothieRoll->actuators[0]->get_current_speed(), speedData, &wptr);
+  ts_writeFloat32(smoothieRoll->actuators[1]->get_current_speed(), speedData, &wptr);
+  ts_writeFloat32(smoothieRoll->actuators[2]->get_current_speed(), speedData, &wptr);
+  ts_writeFloat32(smoothieRoll->actuators[3]->get_current_speed(), speedData, &wptr);
   memcpy(speedEp->ep->data, speedData, 16);
   speedEp->ep->dataLen = 16;
   return true;
@@ -138,7 +138,7 @@ boolean beforeMotionStateQuery(void){
   }
   motionStateEp->ep->data[0] = motion;
   motionStateEp->ep->dataLen = 1;
-  sysError("motion query " + String(motion));
+  //sysError("motion query " + String(motion));
   return true; 
 }
 
@@ -151,7 +151,7 @@ boolean onWaitTimeData(uint8_t* data, uint16_t len){
   uint16_t ptr = 0;
   ts_readUint32(&ms, data, &ptr);
   conveyor->setWaitTime(ms);
-  sysError("set wait " + String(ms));
+  //sysError("set wait " + String(ms));
   return true;
 }
 
@@ -227,8 +227,8 @@ void setup() {
   osapAddVertex(accelSettingsEp); // 7 
   // r8 settings 
   osapAddVertex(rateSettingsEp);  // 8 
-  // smoothie 
-  smoothieRoll->init();
+  // smoothie (and frequency of loop below)
+  smoothieRoll->init(25000);
   // 100kHz base (10us period)
   // 25kHz base (40us period)
   d51ClockBoss->start_ticker_a(40);

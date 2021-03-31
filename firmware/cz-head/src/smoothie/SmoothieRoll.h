@@ -29,7 +29,7 @@ class SmoothieRoll{
     public:
         SmoothieRoll(void);
         static SmoothieRoll* getInstance(void);
-        void init(void);
+        void init(float frequency);
         void step_tick(void);
 
         StepInterface* actuators[SR_NUM_MOTORS];
