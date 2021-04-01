@@ -43,3 +43,15 @@ Well! Today felt like a wash. Did get that data to filippos, I think I am still 
 I am ostensibly here to work for another few hours, it's 9pm now. I wanted to get a post up for tomorrow on OSAP / how to write virtual machines. 
 
 I guess it's just a tonne of git cleanup... merge the onions into the masters. Tomorrow (or starting tonight) I can start on the write up. 
+
+- clank-cz-controller
+    - osape to master merge
+    - rm closed loop tool changer 
+    - possible to abandon firmware here & use ucbus head ? 
+- psu-breakout 
+    - firmware to osape master 
+    - rename / move firmware (?) 
+- same for
+    - ucbus-stepper
+    - heater-module
+    - loadcell-amp 
