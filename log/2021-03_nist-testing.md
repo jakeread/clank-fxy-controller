@@ -37,21 +37,3 @@ For now I can hack my way around this by *= speeds, rates by 4, but that's hardl
 OK I'm figuring out this frequency thing: it's a max_rate issue, which is limited by stepper SPU and ticker frequency. 
 
 Now I just have again some miss in my speed measurement, by one order of magnitude exactly. I believe this was just a mutliplication by 100k, where it should have been by 1m to get timebase from microseconds to seconds. 
-
-Well! Today felt like a wash. Did get that data to filippos, I think I am still feeling sort of aimless? Things not going as fast as I had hoped. Probably this is me sinking into it after having not taken a day off. 
-
-I am ostensibly here to work for another few hours, it's 9pm now. I wanted to get a post up for tomorrow on OSAP / how to write virtual machines. 
-
-I guess it's just a tonne of git cleanup... merge the onions into the masters. Tomorrow (or starting tonight) I can start on the write up. 
-
-- clank-cz-controller
-    - osape to master merge
-    - rm closed loop tool changer 
-    - possible to abandon firmware here & use ucbus head ? 
-- psu-breakout 
-    - firmware to osape master 
-    - rename / move firmware (?) 
-- same for
-    - ucbus-stepper
-    - heater-module
-    - loadcell-amp 
