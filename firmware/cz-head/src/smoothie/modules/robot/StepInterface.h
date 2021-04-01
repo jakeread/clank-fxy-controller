@@ -27,7 +27,6 @@ class StepInterface {
         void set_accel(float acc);
 
         // util to track speed per motor:
-        void set_ticks_per_step(float tps);
         float get_current_speed(void);
 
         boolean step(void);
@@ -40,7 +39,7 @@ class StepInterface {
         // for net interface, 
         volatile int32_t stepwise_position = 0;
         volatile float floating_position = 0.0F;
-        volatile float current_ticks_per_step = 0.0F;
+        volatile float current_speed = 0.0F;
 
     private:
         volatile boolean direction = false;

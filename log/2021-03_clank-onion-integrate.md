@@ -59,11 +59,11 @@ OK, ready to get into the heater modules. Going to finish this tonight, if contr
 
 OFC not finished last night, still trudging. 
 
-- heater code (embedded) & test plots / test PID 
-- think... you're ready to get data for filippos? make a little script for that 
-- heater modules & plots 
-- loadcell module & plot 
-- moment of truth will be long poll on heater / loadcell... hope for no drops 
+This is all done, save for the toolchanger which I can safely ignore.
+
+Now goals are just to run Filippos' tests, and I need the natural PLA for that. Then I'll be into writing the little 'run test' thing... saving some CSVs, maybe plot a jupyter notebook for them, and deliver the data. Onwards would be integrating the new bed, making the thing useable... starting to print things on it. 
+
+Wonder if I am going to want to make the 'flying xy' version of clank instead... not sure I can deal with this cantilevered z. Mechanical distraction, that. Should make OSAP better documented for others first, probably. 
 
 ### Swap Tail
 

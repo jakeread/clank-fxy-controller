@@ -55,15 +55,11 @@ void StepInterface::set_accel(float acc){
     accel = fabsf(acc);
 }
 
-void StepInterface::set_ticks_per_step(float tps){
-    current_ticks_per_step = tps;
-}
-
 float StepInterface::get_current_speed(void){
     if(!moving){
         return 0.0F;
     } else {
-        return STEPTICKER_FROMFP(current_ticks_per_step) * stepTicker->get_frequency();
+        return current_speed;
     }
 }
 
@@ -75,6 +71,11 @@ boolean StepInterface::step(void){
         stepwise_position ++;
     }
     floating_position = stepwise_position * mm_per_step;
+    // track speed based on this tick (badness)
+    now = micros();
+    current_speed = (mm_per_step * 1000000) / (now - last_tick);
+    last_tick = now;
+
     return moving;
 }
 

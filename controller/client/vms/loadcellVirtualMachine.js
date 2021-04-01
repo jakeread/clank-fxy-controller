@@ -18,6 +18,7 @@ import LeastSquares from '../../osapjs/client/utes/lsq.js'
 export default function LoadVM(osap, route) {
   // want a calibration 
   let lsq = new LeastSquares()
+  this.offset = 0 
 
   this.setObservations = (xy, units) => {
     if(units == 'grams'){
@@ -31,13 +32,28 @@ export default function LoadVM(osap, route) {
   }
 
   let readingQuery = osap.query(PK.route(route).sib(2).end())
-  this.getReading = () => {
+  this.getReading = (raw = false) => {
     return new Promise((resolve, reject) => {
       readingQuery.pull().then((data) => {
         let reading = TS.read("int32", data, 0, true)
         reading = lsq.predict(reading)
-        resolve(reading)
+        if(raw){ 
+          resolve(reading)
+        } else {
+          resolve(reading + this.offset)
+        }
       }).catch((err) => { reject(err) })
+    })
+  }
+
+  this.tare = () => {
+    return new Promise((resolve, reject) => {
+      this.getReading(true).then((rd) => {
+        this.offset = - rd
+        resolve()
+      }).catch((err) => {
+        reject(err)
+      })
     })
   }
 }

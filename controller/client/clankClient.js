@@ -117,7 +117,9 @@ initBtn.onClick(() => {
     console.log('setup motor')
     return vm.initMotors()
   }).then(() => {
-    initBtn.good("ok", 500)
+    return hotendVm.setPIDTerms([-0.25, 0, -0.5])
+  }).then(() => {
+    initBtn.good('ok', 500)
   }).catch((err) => {
     console.error(err)
     initBtn.bad("err", 500)
@@ -147,8 +149,8 @@ let ratesXpos = 250
 let ratesYpos = 410
 let setRatesBtn = new Button(ratesXpos, ratesYpos, 84, 24, 'set acc & max fr')
 let accText = new Button(ratesXpos, ratesYpos + 40, 84, 14, 'mm/sec^2')
-let xAccVal = new TextInput(ratesXpos, ratesYpos + 70, 90, 20, '10000')
-let yAccVal = new TextInput(ratesXpos, ratesYpos + 100, 90, 20, '10000')
+let xAccVal = new TextInput(ratesXpos, ratesYpos + 70, 90, 20, '5000')
+let yAccVal = new TextInput(ratesXpos, ratesYpos + 100, 90, 20, '5000')
 let zAccVal = new TextInput(ratesXpos, ratesYpos + 130, 90, 20, '500')
 let eAccVal = new TextInput(ratesXpos, ratesYpos + 160, 90, 20, '1000')
 

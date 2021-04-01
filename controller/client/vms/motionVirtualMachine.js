@@ -23,6 +23,7 @@ export default function MotionVM(osap, route){
   moveEP.setTimeoutLength(60000)
   // move like: { position: {X: num, Y: num, Z: num}, rate: num }
   this.addMoveToQueue = (move) => {
+    console.log("add move", move.position.X)
     // write the gram, 
     let wptr = 0
     let datagram = new Uint8Array(20)
