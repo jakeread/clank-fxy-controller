@@ -228,10 +228,10 @@ void setup() {
   // r8 settings 
   osapAddVertex(rateSettingsEp);  // 8 
   // smoothie (and frequency of loop below)
-  smoothieRoll->init(25000);
+  smoothieRoll->init(50000);
   // 100kHz base (10us period)
   // 25kHz base (40us period)
-  d51ClockBoss->start_ticker_a(40);
+  d51ClockBoss->start_ticker_a(50);
   // l i g h t s 
   ERRLIGHT_ON;
   CLKLIGHT_ON;
