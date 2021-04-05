@@ -231,7 +231,7 @@ void setup() {
   smoothieRoll->init(50000);
   // 100kHz base (10us period)
   // 25kHz base (40us period)
-  d51ClockBoss->start_ticker_a(50);
+  d51ClockBoss->start_ticker_a(20);
   // l i g h t s 
   ERRLIGHT_ON;
   CLKLIGHT_ON;
@@ -266,7 +266,9 @@ void TC0_Handler(void){
   // do step tick 
   smoothieRoll->step_tick();
   // every n ticks, ship position? 
-  if(tick_count > 25){
+  // was / 25...
+  uint8_t len = 15;
+  if(tick_count > len + 2){
     tick_count = 0;
     uint16_t mpptr = 0; // motion packet pointer 
     if(planner->do_set_position){
@@ -276,13 +278,17 @@ void TC0_Handler(void){
       motion_packet[mpptr ++] = UB_AK_GOTOPOS;
     }
     // XYZE 
-    ts_writeFloat32(smoothieRoll->actuators[0]->floating_position, motion_packet, &mpptr);
-    ts_writeFloat32(smoothieRoll->actuators[1]->floating_position, motion_packet, &mpptr);
-    ts_writeFloat32(smoothieRoll->actuators[2]->floating_position, motion_packet, &mpptr);
-    ts_writeFloat32(smoothieRoll->actuators[3]->floating_position, motion_packet, &mpptr);
+    // ts_writeFloat32(smoothieRoll->actuators[0]->floating_position, motion_packet, &mpptr);
+    // ts_writeFloat32(smoothieRoll->actuators[1]->floating_position, motion_packet, &mpptr);
+    // ts_writeFloat32(smoothieRoll->actuators[2]->floating_position, motion_packet, &mpptr);
+    // ts_writeFloat32(smoothieRoll->actuators[3]->floating_position, motion_packet, &mpptr);
+    
+    for(uint8_t i = 0; i < len; i ++){
+      motion_packet[i] = i;
+    }
     // write packet, put on ucbus
     //DEBUG3PIN_ON;
-    ucBusHead_transmitA(motion_packet, 17);
+    ucBusHead_transmitA(motion_packet, len);
     //DEBUG3PIN_OFF;
   }
 }
