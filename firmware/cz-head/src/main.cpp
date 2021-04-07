@@ -231,15 +231,22 @@ void setup() {
   smoothieRoll->init(50000);
   // 100kHz base (10us period)
   // 25kHz base (40us period)
-  d51ClockBoss->start_ticker_a(20);
+  d51ClockBoss->start_ticker_a(16);
   // l i g h t s 
   ERRLIGHT_ON;
   CLKLIGHT_ON;
 }
 
+uint8_t txTestData[13] = {
+  2, 4, 6, 8, 10, 
+  12, 14, 16, 18, 20,
+  22, 24, 26
+};
+
 uint32_t ledTickCount = 0;
 void loop() {
-  //DEBUG2PIN_TOGGLE;
+  // write ~ every second, transmit on chb to drop 1 
+  // check indices on the way down / up ... was shifting, are not anymore 
   osapLoop();
   conveyor->on_idle(nullptr);
   // blink
@@ -248,6 +255,7 @@ void loop() {
     // blink 
     DEBUG1PIN_TOGGLE;
     ledTickCount = 0;
+    ucBusHead_transmitB(txTestData, 13, 1);
   }
 } // end loop 
 
