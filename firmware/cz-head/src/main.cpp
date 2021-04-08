@@ -231,17 +231,11 @@ void setup() {
   smoothieRoll->init(50000);
   // 100kHz base (10us period)
   // 25kHz base (40us period)
-  d51ClockBoss->start_ticker_a(16);
+  d51ClockBoss->start_ticker_a(20);
   // l i g h t s 
   ERRLIGHT_ON;
   CLKLIGHT_ON;
 }
-
-uint8_t txTestData[13] = {
-  2, 4, 6, 8, 10, 
-  12, 14, 16, 18, 20,
-  22, 24, 26
-};
 
 uint32_t ledTickCount = 0;
 void loop() {
@@ -255,14 +249,12 @@ void loop() {
     // blink 
     DEBUG1PIN_TOGGLE;
     ledTickCount = 0;
-    ucBusHead_transmitB(txTestData, 13, 1);
   }
 } // end loop 
 
 // runs on period defined by timer_a setup: 
 volatile uint8_t tick_count = 0;
 uint8_t motion_packet[64]; // three floats bb, space 
-float extruder_virtual = 0;
 
 void TC0_Handler(void){
   // runs at 100KHz (10us period), eats about 2.5us, or 5 if the transmit occurs 
@@ -275,8 +267,7 @@ void TC0_Handler(void){
   smoothieRoll->step_tick();
   // every n ticks, ship position? 
   // was / 25...
-  uint8_t len = 15;
-  if(tick_count > len + 2){
+  if(tick_count > 25){
     tick_count = 0;
     uint16_t mpptr = 0; // motion packet pointer 
     if(planner->do_set_position){
@@ -286,17 +277,13 @@ void TC0_Handler(void){
       motion_packet[mpptr ++] = UB_AK_GOTOPOS;
     }
     // XYZE 
-    // ts_writeFloat32(smoothieRoll->actuators[0]->floating_position, motion_packet, &mpptr);
-    // ts_writeFloat32(smoothieRoll->actuators[1]->floating_position, motion_packet, &mpptr);
-    // ts_writeFloat32(smoothieRoll->actuators[2]->floating_position, motion_packet, &mpptr);
-    // ts_writeFloat32(smoothieRoll->actuators[3]->floating_position, motion_packet, &mpptr);
-    
-    for(uint8_t i = 0; i < len; i ++){
-      motion_packet[i] = i;
-    }
+    ts_writeFloat32(smoothieRoll->actuators[0]->floating_position, motion_packet, &mpptr);
+    ts_writeFloat32(smoothieRoll->actuators[1]->floating_position, motion_packet, &mpptr);
+    ts_writeFloat32(smoothieRoll->actuators[2]->floating_position, motion_packet, &mpptr);
+    ts_writeFloat32(smoothieRoll->actuators[3]->floating_position, motion_packet, &mpptr);
     // write packet, put on ucbus
     //DEBUG3PIN_ON;
-    ucBusHead_transmitA(motion_packet, len);
+    ucBusHead_transmitA(motion_packet, 17);
     //DEBUG3PIN_OFF;
   }
 }

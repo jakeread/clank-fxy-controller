@@ -132,9 +132,6 @@ void StepTicker::step_tick (void){
 
             // step the motor
             bool ismoving = motor[m]->step(); // returns false if the moving flag was set to false externally (probes, endstops etc)
-            if(m == 3 && ismoving){
-                DEBUG2PIN_TOGGLE;
-            }
 
             if(!ismoving || current_block->tick_info[m].step_count == current_block->tick_info[m].steps_to_move) {
                 // done
@@ -185,20 +182,6 @@ bool StepTicker::start_next_block()
     bool ok = false;
     // need to prepare each active motor
     for (uint8_t m = 0; m < num_motors; m++) {
-        if(m == 0){
-            if(current_block->direction_bits[m]){
-                DEBUG1PIN_HI;
-            } else {
-                DEBUG1PIN_LO;
-            }
-            //stepper_hw->dir(current_block->direction_bits[m]);
-        } else if (m == 1){
-            if(current_block->direction_bits[m]){
-                DEBUG3PIN_HI;
-            } else {
-                DEBUG3PIN_LO;
-            }
-        }
         if(current_block->tick_info[m].steps_to_move == 0) continue;
         ok = true; // mark at least one motor is moving
         // set direction bit here
