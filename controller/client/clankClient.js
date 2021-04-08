@@ -105,6 +105,25 @@ jQuery.get('/startLocal/osapSerialBridge.js', (res) => {
 // vm, 
 let vm = new ClankVM(osap)
 
+// adhoc test two temp ends, 
+
+let tempx0 = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(1).end())
+let tempx1 = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(2).end())
+
+let tstBtn = new Button(350, 350, 104, 24, "test")
+tstBtn.onClick(() => {
+  tempx0.getExtruderTemp().then((temp) => {
+    console.warn('tempx0', temp)
+  }).catch((err) => {
+    console.error(err)
+  })
+  tempx1.getExtruderTemp().then((temp) => {
+    console.warn('tempx1', temp)
+  }).catch((err) => {
+    console.error(err)
+  })
+})
+
 // -------------------------------------------------------- MOTION FEED
 
 // panel, 
@@ -197,7 +216,7 @@ let setupMotion = () => {
 
 // working into temps:
 
-let hotendVm = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(7).end())
+let hotendVm = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(6).end())
 //let hotendPanel = new TempPanel(hotendVm, 350, 10, 220, "hotend")
 
 let bedVm = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(9).end())
@@ -205,7 +224,7 @@ let bedVm = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(
 
 // -------------------------------------------------------- LOADCELL CONTROLLER
 
-let loadcellVm = new LoadVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(8).end())
+let loadcellVm = new LoadVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(7).end())
 //let loadPanel = new LoadPanel(loadcellVm, 350, 830, "HE loadcell")
 let readings = [
   [-124000, -137000, -147000, -159000, -171000, -184000, -195000, -225000, -350000],

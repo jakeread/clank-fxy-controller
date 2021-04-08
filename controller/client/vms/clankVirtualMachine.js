@@ -57,11 +57,11 @@ export default function ClankVM(osap) {
   // https://www.bondtech.se/en/customer-service/faq/ 
   // however, this is measured & calibrated: 830 was extruding 75mm for a 50mm request 
   /* bus ID (osap maps +1)
-  X:    0 
-  YL:   1
-  YR:   2, term
-  Z:    3 
-  TCS:  4
+  X:    1
+  YL:   2
+  YR:   3, term
+  Z:    4 
+  TCS:  x
   E:    5
   HE:   6
   LC:   7
@@ -73,7 +73,7 @@ export default function ClankVM(osap) {
     YL: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(2).end()),   // 2
     YR: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(3).end()),   // 3
     Z: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(4).end()),    // 4
-    E: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(6).end()),    // 6
+    E: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(5).end()),    // 6
   }
 
   let motorCurrents = [0.5, 0.5, 0.5, 0.5, 0.5]
