@@ -1,7 +1,7 @@
 /*
 clankVirtualMachine.js
 
-vm for Clank-CZ
+vm for Clank-FXY / all things physically attached (end effector not included)
 
 Jake Read at the Center for Bits and Atoms
 (c) Massachusetts Institute of Technology 2021
@@ -14,21 +14,7 @@ no warranty is provided, and users accept all liability.
 
 import { PK, TS, VT, EP, TIMES } from '../../osapjs/core/ts.js'
 import MotionVM from './motionVirtualMachine.js'
-import LoadVM from './loadcellVirtualMachine.js'
 import MotorVM from './motorVirtualMachine.js'
-import TempVM from './tempVirtualMachine.js'
-
-/* bus ID (osap maps +1)
-X:    0 
-YL:   1
-YR:   2, term
-Z:    3 
-TCS:  4
-E:    5
-HE:   6
-LC:   7
-BED:  8
-*/
 
 /* cz-head
 0: serialport 
@@ -40,50 +26,63 @@ BED:  8
 
 export default function ClankVM(osap) {
 
+  // ------------------------------------------------------ NET LOCATION OF BUS HEAD 
+
+  let headRoute = PK.route().sib(0).pfwd().sib(1).pfwd().end()
+
   // ------------------------------------------------------ MOTION
   // with base route -> embedded smoothie instance 
-  this.motion = new MotionVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().end())
+  this.motion = new MotionVM(osap, headRoute)
 
   // ------------------------------------------------------ MOTORS
 
   // clank cz:
-  // AXIS   SPU     INVERT
-  // X:     320     false
-  // YL:    320     true
-  // YR:    320     false
-  // Z:     924.4r  false
+  // AXIS   SPU     INVERT    BUS
+  // X:     320     false     1
+  // YL:    320     true      2
+  // YR:    320     false     3
+  // ZLF:   x       x         4
+  // ZLR:   x                 5
+  // ZRF:   x                 6
+  // ZRR:   x                 7
+  // E: included here (?) shouldn't be 
   // E:     550     true 
   // per bondtech, for BMG on 16 microsteps, do 415: we are 32 microsteps 
   // https://www.bondtech.se/en/customer-service/faq/ 
   // however, this is measured & calibrated: 830 was extruding 75mm for a 50mm request 
-  /* bus ID (osap maps +1)
-  X:    1
-  YL:   2
-  YR:   3, term
-  Z:    4 
-  TCS:  x
-  E:    5
-  HE:   6
-  LC:   7
-  BED:  8
-  */
 
   this.motors = {
-    X: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(1).end()),    // 1
-    YL: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(2).end()),   // 2
-    YR: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(3).end()),   // 3
-    Z: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(4).end()),    // 4
-    E: new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(5).end()),    // 6
+    X: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(1).end()),
+    YL: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(2).end()),
+    YR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(3).end()),
+    ZLF: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(4).end()),
+    ZLR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(5).end()),
+    ZRF: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(6).end()),
+    ZRR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(7).end()),
   }
 
-  let motorCurrents = [0.5, 0.5, 0.5, 0.5, 0.5]
+  let motorIncludes = {
+    X: true,
+    YL: false,
+    YR: false,
+    ZLF: true,
+    ZLR: true,
+    ZRF: true,
+    ZRR: true
+  }
+
+  let zMotorSPU = 914.2857143
+  let defaultCurrent = 0.4
+
   this.setMotorCurrents = async () => {
     try {
-      await this.motors.X.setCScale(motorCurrents[0])
-      await this.motors.YL.setCScale(motorCurrents[1])
-      await this.motors.YR.setCScale(motorCurrents[2])
-      await this.motors.Z.setCScale(motorCurrents[3])
-      await this.motors.E.setCScale(motorCurrents[4])
+      if (motorIncludes.X) await this.motors.X.setCScale(defaultCurrent)
+      if (motorIncludes.YL) await this.motors.YL.setCScale(defaultCurrent)
+      if (motorIncludes.YR) await this.motors.YR.setCScale(defaultCurrent)
+      if (motorIncludes.ZLF) await this.motors.ZLF.setCScale(defaultCurrent)
+      if (motorIncludes.ZLR) await this.motors.ZLR.setCScale(defaultCurrent)
+      if (motorIncludes.ZRF) await this.motors.ZRF.setCScale(defaultCurrent)
+      if (motorIncludes.ZRR) await this.motors.ZRR.setCScale(defaultCurrent)
     } catch (err) {
       console.error('bad motor current set')
       throw err
@@ -95,11 +94,13 @@ export default function ClankVM(osap) {
 
   this.disableMotors = async () => {
     try {
-      await this.motors.X.setCScale(0)
-      await this.motors.YL.setCScale(0)
-      await this.motors.YR.setCScale(0)
-      await this.motors.Z.setCScale(0)
-      await this.motors.E.setCScale(0)
+      if (motorIncludes.X) await this.motors.X.setCScale(0)
+      if (motorIncludes.YL) await this.motors.YL.setCScale(0)
+      if (motorIncludes.YR) await this.motors.YR.setCScale(0)
+      if (motorIncludes.ZLF) await this.motors.ZLF.setCScale(0)
+      if (motorIncludes.ZLR) await this.motors.ZLR.setCScale(0)
+      if (motorIncludes.ZRF) await this.motors.ZRF.setCScale(0)
+      if (motorIncludes.ZRR) await this.motors.ZRR.setCScale(0)
     } catch (err) {
       console.error('bad motor disable set')
       throw err
@@ -107,51 +108,117 @@ export default function ClankVM(osap) {
   }
 
   this.initMotors = async () => {
-    // so, really, for these & the disable / enable / set current
-    // could do them all parallel: like this halts if i.e. YL fails,
-    // where it might just be that motor with an error... that'd be catching / continuing, accumulating
-    // errors, and reporting them in a group 
-    try {
-      await this.motors.X.setAxisPick(0)
-      await this.motors.X.setAxisInversion(false)
-      await this.motors.X.setSPU(320)
-    } catch (err) {
-      console.error('bad x motor init')
-      throw err
+    // I know, it's ugly;
+
+    if (motorIncludes.X) {
+      try {
+        await this.motors.X.setAxisPick(0)
+        await this.motors.X.setAxisInversion(false)
+        await this.motors.X.setSPU(320)
+      } catch (err) {
+        console.error('bad x motor init')
+        throw err
+      }
     }
-    try {
-      await this.motors.YL.setAxisPick(1)
-      await this.motors.YL.setAxisInversion(true)
-      await this.motors.YL.setSPU(320)
-    } catch (err) {
-      console.error('bad yl motor init')
-      throw err
+
+    if (motorIncludes.YL) {
+      try {
+        await this.motors.YL.setAxisPick(1)
+        await this.motors.YL.setAxisInversion(true)
+        await this.motors.YL.setSPU(320)
+      } catch (err) {
+        console.error('bad yl motor init')
+        throw err
+      }
     }
-    try {
-      await this.motors.YR.setAxisPick(1)
-      await this.motors.YR.setAxisInversion(false)
-      await this.motors.YR.setSPU(320)
-    } catch (err) {
-      console.error('bad yr motor init')
-      throw err
+
+    if (motorIncludes.YR) {
+      try {
+        await this.motors.YR.setAxisPick(1)
+        await this.motors.YR.setAxisInversion(false)
+        await this.motors.YR.setSPU(320)
+      } catch (err) {
+        console.error('bad yr motor init')
+        throw err
+      }
     }
-    try {
-      await this.motors.Z.setAxisPick(2)
-      await this.motors.Z.setAxisInversion(false)
-      await this.motors.Z.setSPU(924.444444)
-    } catch (err) {
-      console.error('bad z motor init')
-      throw err
+
+    if (motorIncludes.ZLF) {
+      try {
+        await this.motors.ZLF.setAxisPick(2)
+        await this.motors.ZLF.setAxisInversion(true)
+        await this.motors.ZLF.setSPU(zMotorSPU)
+      } catch (err) {
+        console.error('bad z left front motor init')
+        throw err
+      }
     }
-    try {
-      await this.motors.E.setAxisPick(3)
-      await this.motors.E.setAxisInversion(true)
-      await this.motors.E.setSPU(550)
-    } catch (err) {
-      console.error('bad e motor init')
-      throw err
+
+    if (motorIncludes.ZLR) {
+      try {
+        await this.motors.ZLR.setAxisPick(2)
+        await this.motors.ZLR.setAxisInversion(false)
+        await this.motors.ZLR.setSPU(zMotorSPU)
+      } catch (err) {
+        console.error('bad z left rear motor init')
+        throw err
+      }
     }
+
+    if (motorIncludes.ZRF) {
+      try {
+        await this.motors.ZRF.setAxisPick(2)
+        await this.motors.ZRF.setAxisInversion(false)
+        await this.motors.ZRF.setSPU(zMotorSPU)
+      } catch (err) {
+        console.error('bad z right front motor init')
+        throw err
+      }
+    }
+
+    if (motorIncludes.ZRR) {
+      try {
+        await this.motors.ZRR.setAxisPick(2)
+        await this.motors.ZRR.setAxisInversion(true)
+        await this.motors.ZRR.setSPU(zMotorSPU)
+      } catch (err) {
+        console.error('bad z right rear motor init')
+        throw err
+      }
+    }
+
     await this.setMotorCurrents()
+  }
+
+  // ------------------------------------------------------ HOMING 
+
+  this.home = async () => {
+    try {
+      // z first, and do it twice (first is alignment, 2nd is linear tap)
+      await this.homeZ()
+      await this.homeZ()
+      // x, y
+      this.motors.X.home(1000, 5)
+      await this.motors.X.awaitHomeComplete()
+    } catch (err) {
+      throw err
+    }
+  }
+
+  this.homeZ = async () => {
+    // should home twice ... sync to motors, await all to complete as well (?) 
+    try {
+      this.motors.ZLF.home(500, 2)
+      this.motors.ZLR.home(500, 2)
+      this.motors.ZRF.home(500, 2)
+      this.motors.ZRR.home(500, 2)
+      await this.motors.ZLF.awaitHomeComplete()
+      await this.motors.ZLR.awaitHomeComplete()
+      await this.motors.ZRF.awaitHomeComplete()
+      await this.motors.ZRR.awaitHomeComplete()
+    } catch (err) {
+      throw err 
+    }
   }
 
   /*

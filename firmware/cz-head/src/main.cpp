@@ -131,7 +131,7 @@ vertex_t* motionStateEp = osapBuildEndpoint("motionState", nullptr, beforeMotion
 
 boolean beforeMotionStateQuery(void){
   uint8_t motion;
-  if(smoothieRoll->actuators[0]->is_moving() || smoothieRoll->actuators[1]->is_moving() || smoothieRoll->actuators[2]->is_moving()){
+  if(smoothieRoll->actuators[0]->is_moving() || smoothieRoll->actuators[1]->is_moving() || smoothieRoll->actuators[2]->is_moving() || !smoothie_is_queue_empty()){
     motion = true;
   } else {
     motion = false;

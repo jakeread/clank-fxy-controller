@@ -15,7 +15,7 @@ no warranty is provided, and users accept all liability.
 'use strict'
 
 import OSAP from '../osapjs/core/osapRoot.js'
-import { PK, TS, VT, EP } from '../osapjs/core/ts.js'
+import { PK, TS, VT, EP, TIMES } from '../osapjs/core/ts.js'
 
 // the clank 'virtual machine'
 import ClankVM from './vms/clankVirtualMachine.js'
@@ -31,7 +31,8 @@ import TempPanel from '../osapjs/client/components/tempPanel.js'
 import TempVM from './vms/tempVirtualMachine.js'
 import LoadVM from './vms/loadcellVirtualMachine.js'
 import LoadPanel from '../osapjs/client/components/loadPanel.js'
-import FilamentExperiment from '../osapjs/client/components/filamentExperiment.js'
+import FilamentExperiment from '../client/components/filamentExperiment.js'
+import StiffnessMapper from '../client/components/bedStiffnessMapper.js'
 
 console.log("hello clank controller")
 
@@ -105,38 +106,29 @@ jQuery.get('/startLocal/osapSerialBridge.js', (res) => {
 // vm, 
 let vm = new ClankVM(osap)
 
-// adhoc test two temp ends, 
-
-let tempx0 = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(1).end())
-let tempx1 = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(2).end())
-
-let tstBtn = new Button(350, 350, 104, 24, "test")
-tstBtn.onClick(() => {
-  tempx0.getExtruderTemp().then((temp) => {
-    console.warn('tempx0', temp)
-  }).catch((err) => {
-    console.error(err)
-  })
-  tempx1.getExtruderTemp().then((temp) => {
-    console.warn('tempx1', temp)
-  }).catch((err) => {
-    console.error(err)
-  })
-})
-
 // -------------------------------------------------------- MOTION FEED
 
 // panel, 
 let gCodePanel = new GCodePanel(vm, 10, 10)
 
+let rearLeftZero = {
+  X: 0,
+  Y: 240,
+  Z: 121.8,
+  E: 0
+}
+
 // init... 
 let initBtn = new Button(250, 10, 84, 104, 'init')
 initBtn.onClick(() => {
   setupMotion().then(() => {
-    console.log('setup motor')
+    console.log('setup motors, hotend pid, and declare 0, 0, 121.8')
     return vm.initMotors()
   }).then(() => {
-    return hotendVm.setPIDTerms([-0.25, 0, -0.5])
+    //return hotendVm.setPIDTerms([-0.25, 0, -0.5])
+    return TIMES.delay(10)
+  }).then(() => {
+    return vm.motion.setPos(rearLeftZero)
   }).then(() => {
     initBtn.good('ok', 500)
   }).catch((err) => {
@@ -147,12 +139,7 @@ initBtn.onClick(() => {
 
 let setStartBtn = new Button(250, 130, 84, 14, 'offset zero')
 setStartBtn.onClick(() => {
-  vm.motion.setPos({
-    X: 0,
-    Y: 0,
-    Z: 121.8,
-    E: 0
-  }).then(() => {
+  vm.motion.setPos(rearLeftZero).then(() => {
     setStartBtn.good("ok", 500)
   }).catch((err) => {
     console.error(err)
@@ -160,23 +147,52 @@ setStartBtn.onClick(() => {
   })
 })
 
+let gotoStartBtn = new Button(250, 160, 84, 14, 'goto home')
+gotoStartBtn.onClick(() => {
+  vm.motion.awaitMotionEnd().then(() => {
+    return vm.motion.addMoveToQueue({
+      position: rearLeftZero,
+      rate: 1000
+    })
+  }).then(() => {
+    return vm.motion.awaitMotionEnd()
+  }).then(() => {
+    gotoStartBtn.good('ok')
+  }).catch((err) => {
+    console.log(err)
+    gotoStartBtn.bad('err')
+  })
+})
+
+// -------------------------------------------------------- HOME 
+
+let homeBtn = new Button(350, 160, 84, 14, 'home')
+homeBtn.onClick(() => {
+  vm.home().then(() => {
+    homeBtn.good("ok")
+  }).catch((err) => {
+    console.log(err)
+    homeBtn.bad("err")
+  })
+})
+
 // jog, 
-let jogBox = new JogBox(250, 170, vm)
+let jogBox = new JogBox(250, 190, vm)
 
 // rates / accel setup 
-let ratesXpos = 250 
-let ratesYpos = 410
+let ratesXpos = 250
+let ratesYpos = 420
 let setRatesBtn = new Button(ratesXpos, ratesYpos, 84, 24, 'set acc & max fr')
 let accText = new Button(ratesXpos, ratesYpos + 40, 84, 14, 'mm/sec^2')
 let xAccVal = new TextInput(ratesXpos, ratesYpos + 70, 90, 20, '5000')
 let yAccVal = new TextInput(ratesXpos, ratesYpos + 100, 90, 20, '5000')
-let zAccVal = new TextInput(ratesXpos, ratesYpos + 130, 90, 20, '500')
+let zAccVal = new TextInput(ratesXpos, ratesYpos + 130, 90, 20, '5000')
 let eAccVal = new TextInput(ratesXpos, ratesYpos + 160, 90, 20, '1000')
 
 let rateText = new Button(ratesXpos, ratesYpos + 190, 84, 14, 'mm/min')
 let xRateVal = new TextInput(ratesXpos, ratesYpos + 220, 90, 20, '12000')
 let yRateVal = new TextInput(ratesXpos, ratesYpos + 250, 90, 20, '12000')
-let zRateVal = new TextInput(ratesXpos, ratesYpos + 280, 90, 20, '1000')
+let zRateVal = new TextInput(ratesXpos, ratesYpos + 280, 90, 20, '12000')
 let eRateVal = new TextInput(ratesXpos, ratesYpos + 310, 90, 20, '60000')
 
 let setupMotion = () => {
@@ -216,27 +232,33 @@ let setupMotion = () => {
 
 // working into temps:
 
-let hotendVm = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(6).end())
+//let hotendVm = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(6).end())
 //let hotendPanel = new TempPanel(hotendVm, 350, 10, 220, "hotend")
 
-let bedVm = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(9).end())
+//let bedVm = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(9).end())
 //let bedPanel = new TempPanel(bedVm, 350, 420, 70, "bed")
 
 // -------------------------------------------------------- LOADCELL CONTROLLER
 
+/*
 let loadcellVm = new LoadVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(7).end())
 //let loadPanel = new LoadPanel(loadcellVm, 350, 830, "HE loadcell")
 let readings = [
   [-124000, -137000, -147000, -159000, -171000, -184000, -195000, -225000, -350000],
   [0, -50, -100, -150, -200, -250, -300, -500, -1000]];
 loadcellVm.setObservations(readings, 'grams')
+*/
 
 // -------------------------------------------------------- Filament Data Gen 
 
-let dataGen = new FilamentExperiment(vm, hotendVm, loadcellVm, 350, 10)
+// let dataGen = new FilamentExperiment(vm, hotendVm, loadcellVm, 350, 10)
+
+// -------------------------------------------------------- Stiffness Map Data Gen
+
+//let stiffnessMapper = new StiffnessMapper(vm, loadcellVm, 350, 10)
 
 /*
-// this is... kind of buggy. button state sometimes straightforwards, sometimes callback hell 
+// this is... kind of buggy. button state sometimes straightforwards, sometimes callback hell
 let posBtn = new Button(430, 10, 344, 14, 'pos')
 let posLp = false
 posBtn.onClick(() => {
@@ -315,7 +337,7 @@ speedPlot.setHoldCount(1000)
 let loadPlot = new AutoPlot(360, 620, 420, 200, 'e load (n)')
 loadPlot.setHoldCount(1000)
 let tstLp = false
-let eTestLpCnt = 0 
+let eTestLpCnt = 0
 let eTestStore = {
   temps: [],
   speeds: [],
@@ -323,18 +345,18 @@ let eTestStore = {
 }
 testStartBtn.onClick(() => {
   if(tstLp){
-    tstLp = false 
-    return 
+    tstLp = false
+    return
   }
   let lp = () => {
     if(!tstLp){
       testStartBtn.bad("fin", 500)
       console.log(eTestStore)
       //SaveFile(eTestStore, 'json', 'extruderTestData.json')
-      return 
+      return
     }
     vm.pullExtruderTest().then((res) => {
-      eTestLpCnt ++ 
+      eTestLpCnt ++
       tempPlot.pushPt([eTestLpCnt, res.temp])
       speedPlot.pushPt([eTestLpCnt, res.speed])
       loadPlot.pushPt([eTestLpCnt, res.load])
@@ -352,12 +374,12 @@ testStartBtn.onClick(() => {
       setTimeout(lp, 10)
     })
   }
-  tstLp = true 
+  tstLp = true
   lp()
 })
 
 // -------------------------------------------------------- MOTION SETTINGS
-// todo: should bundle with jog, position query, etc ? or get on with other work 
+// todo: should bundle with jog, position query, etc ? or get on with other work
 
 setRatesBtn.onClick(() => {
   setupMotion().then(() => {
@@ -414,7 +436,7 @@ initMachineBtn.onClick(() => {
   })
 })
 
-// -------------------------------------------------------- TOOLCHANGER 
+// -------------------------------------------------------- TOOLCHANGER
 
 let tcBtn = new Button(540, 70, 94, 14, 'tc')
 tcBtn.onClick(() => {
@@ -468,7 +490,7 @@ pickupBtn.onClick(() => {
   })
 })
 
-// -------------------------------------------------------- LOADCELL 
+// -------------------------------------------------------- LOADCELL
 
 let loadBtn = new Button(540, 100, 95, 14, 'loadcell')
 let loadLp = false

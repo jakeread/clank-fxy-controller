@@ -107,6 +107,20 @@ export default function MotionVM(osap, route){
   // another query to see if it's currently moving, 
   // update that endpoint so we can 'write halt' / 'write go' with a set 
   let motionQuery = osap.query(PK.route(route).sib(5).end())//TS.route().portf(0).portf(1).end(), TS.endpoint(0, 3), 512)
+  this.getMotionState = () => {
+    return new Promise((resolve, reject) => {
+      motionQuery.pull().then((data) => {
+        if(data[0] > 0){
+          resolve(true)
+        } else {
+          resolve(false)
+        }
+      }).catch((err) => {
+        reject(err)
+      })
+    })
+  }
+
   this.awaitMotionEnd = () => {
     return new Promise((resolve, reject) => {
       let check = () => {

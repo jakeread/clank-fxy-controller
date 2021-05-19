@@ -41,6 +41,24 @@
 - CL & OL motors should work together, shouldn't all have to be
 - do Z first, avoid this knock 
 
+## 2021 05 19 
+
+I've homing together, Z being the most difficult - just need to add Y to the routine, attach the bed, then another CAD cycle to think about better bed mounting (I would love to secure it from below to avoid overhanging clips) and to have proper YL/YR limit contact, given the Z belt position. 
+
+Nicely, the Z axis does not 'sink' when the power is off / motors are disengaged, and the Z setup is tolerant to some kinematic out-of-plane action, meaning I will be able to adjust tramming using those kinematics - this is good news for the inevitable slight angular deviation between the bed and i.e. milling tools. 
+
+![home](2021-05-19_clank-fxy-home.mp4) 
+
+## 2021 05 17 
+
+Today I'm wanting to get limit-switch homing up. I figure this is a motor 'endpoint' that tells it to home with 'rate (float / dir), proportion (2nd rate), offset' - after homing, we do a 'set posn' separately, homing doesn't actually modify the 'position' that the stepper tracks. 
+
+Alright so this requires that I have a little bit of 'control' at the stepper... 
+
+I'd like to also improve the motor-config software for the machine... so that I could quickly exclude motors from a 'build' ... but maybe this is later. 
+
+OK, this all works pretty well. I am just using one 'bounce off' which is probably ~ somewhat less accurate than the double tap, but it'll be serviceable for now. Bigger goals are adding things like tramming / bed flatness adjustment to the thing, using some kind of z-motor-matrix of offsets. 
+
 ## 2021 02 12 
 
 I clearly want to be done with this phase, but am having small bugs to do with timing details / asynchronousness in the motion queue. 

@@ -21,7 +21,6 @@ import { PK, TS, VT, EP, TIMES } from '../../osapjs/core/ts.js'
 */
 
 export default function MotorVM(osap, route) {
-  console.warn('motor route', JSON.parse(JSON.stringify(route)))
   
   let axisPickEP = osap.endpoint()
   axisPickEP.addRoute(PK.route(route).sib(2).end())
@@ -70,6 +69,54 @@ export default function MotorVM(osap, route) {
       cscaleEP.write(datagram, "acked").then(() => {
         resolve()
       }).catch((err) => { reject(err) })  
+    })
+  }
+
+  // homing 
+  let homeEP = osap.endpoint()
+  homeEP.addRoute(PK.route(route).sib(6).end())
+  this.home = (rate, offset) => {
+    if(!rate || !offset){
+      rate = 20
+      offset = 10
+    }
+    //console.log(rate / 60, offset)
+    let datagram = new Uint8Array(8)
+    TS.write('float32', rate / 60, datagram, 0, true)
+    TS.write('float32', offset, datagram, 4, true)
+    return new Promise((resolve, reject) => {
+      homeEP.write(datagram, "acked").then(() => {
+        resolve()
+      }).catch((err) => { reject(err) })
+    })
+  }
+
+  // home state 
+  let homeStateQuery = osap.query(PK.route(route).sib(7).end())
+  this.getHomeState = () => {
+    return new Promise((resolve, reject) => {
+      homeStateQuery.pull().then((data) => {
+        if(data[0] > 0){
+          resolve(true)
+        } else {
+          resolve(false)
+        }
+      }).catch((err) => { reject(err) })
+    })
+  }
+
+  this.awaitHomeComplete = () => {
+    return new Promise((resolve, reject) => {
+      let check = () => {
+        this.getHomeState().then((homing) => {
+          if(homing){
+            setTimeout(check, 50)
+          } else {
+            resolve()
+          }
+        }).catch((err) => { reject(err) })
+      } // end 'check' def 
+      setTimeout(check, 50)
     })
   }
 }
