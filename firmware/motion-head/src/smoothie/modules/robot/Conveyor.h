@@ -9,7 +9,7 @@
 
 //#include "libs/Module.h"
 #include "../../libs/HeapRing.h"
-#include "../../../drivers/indicators.h"
+#include "../../../indicators.h"
 
 #include "../../SmoothieConfig.h"
 #include "../../SmoothieRoll.h"

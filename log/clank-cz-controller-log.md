@@ -50,6 +50,8 @@ Alright, back at this. First some refreshers: I want a better motor interface / 
 
 Lots to clean here, kind of forever chasing the tail though. One more crack at the motor API is worthwhile... adding those to a vm should make sense to folks. I don't need to change the stepper code to do that, but since I'm making a pass through I might as well. 
 
+Codes are submodul-d at the head and the motor, now for a prettier JS side init / homing / motor abstractions. 
+
 ## 2021 05 19 
 
 I've homing together, Z being the most difficult - just need to add Y to the routine, attach the bed, then another CAD cycle to think about better bed mounting (I would love to secure it from below to avoid overhanging clips) and to have proper YL/YR limit contact, given the Z belt position. 

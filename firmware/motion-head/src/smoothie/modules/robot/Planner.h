@@ -9,7 +9,7 @@
 #define PLANNER_H
 
 #include <Arduino.h>
-#include "../../../drivers/indicators.h"
+#include "../../../indicators.h"
 
 #include "../../SmoothieConfig.h"
 #include "../../SmoothieRoll.h"

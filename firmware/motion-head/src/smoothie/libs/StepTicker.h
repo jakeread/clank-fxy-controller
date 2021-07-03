@@ -27,7 +27,7 @@ class Block;
 
 // osap includes 
 #include <Arduino.h>
-#include "../../drivers/indicators.h"
+#include "../../indicators.h"
 
 // handle 2.30 Fixed point
 #define STEPTICKER_FPSCALE (1<<30)

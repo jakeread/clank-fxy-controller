@@ -1,7 +1,7 @@
 #ifndef _HEAPRING_H
 #define _HEAPRING_H
 
-#include "../../osape/utils/syserror.h"
+#include "../../syserror.h"
 
 template<class kind> class HeapRing {
 

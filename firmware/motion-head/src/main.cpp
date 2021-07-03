@@ -1,19 +1,15 @@
 #include <Arduino.h>
 
-#include "drivers/indicators.h"
-#include "osape/utils/d51ClockBoss.h"
+#include "indicators.h"
+#include "syserror.h"
+#include "osape-d51/d51ClockBoss.h"
 
 #include "smoothie/SmoothieRoll.h"
 
-#include "osape/osap/osap.h"
-#include "osape/osap/vt_usbSerial.h"
-#include "osape/osap/vt_ucBusHead.h"
-
-#include "osape/ucbus/ucBusHead.h"
-
-#include "osape/osap/osapLoop.h"
-#include "osape/utils/syserror.h"
-
+#include "osape-d51/osape/osap/osap.h"
+#include "osape-d51/vertices/vt_usbSerial.h"
+#include "osape-d51/vertices/vt_ucBusHead.h"
+#include "osape-d51/vertices/ucBusHead.h"
 // -------------------------------------------------------- SMOOTHIE HANDLES 
 // *should* go to smoothieRoll.h, duh 
 
