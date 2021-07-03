@@ -52,6 +52,28 @@ Lots to clean here, kind of forever chasing the tail though. One more crack at t
 
 Codes are submodul-d at the head and the motor, now for a prettier JS side init / homing / motor abstractions. 
 
+I guess I'm also trying to think of what good JS APIs look like as well. I kind of think passing an object into a function is nice, so arguments are kind of labelled by default. That's a worthy kind of documentation? Maybe a bit of effort to write though... 
+
+I think one confusion also is that I have currently coupled toolchanger, heater, and motors into one 'clank' vm - it could be motion, motors and toolchanger into the clank vm, but hotends etc should be separate (?) though this is kind of the crux, it's also a bit of a distraction. 
+
+Really tearing this thing up again, I guess it's incremental towards a "solid" feeling interface that makes sense. 
+
+UI is going to be *nice* after this (I hope) - first run is to do motion setup, then virtually click motor enable button and loop through its color / states automatically... 
+
+I think having rates / accel settings on the UI page isn't worth it, I'll throw those configs behind the scenes. 
+
+This kind of stuff is a real code-cleanliness rabithole. For settings: I want to write them once and then run setup, but also to use the same API to write-and-update... I could just use a flag. 
+
+w/r/t mm/min or mm/sec spec: I *want* everything to be base mm/sec units, I'll do the conversion *at the gcode* and otherwise treat things in mm/sec. 
+
+The settings-update stuff expands into a rabbit hole of js-object-diffing... 
+
+- setup motion, then init motors, then home in sequence
+- after setup started, do periodic position updates as a keepalive,
+  - if failure, setup btn goes red, otherwise update position ticker 
+- rebuild jog... yikes 
+  - use textInput.getNumber() method
+
 ## 2021 05 19 
 
 I've homing together, Z being the most difficult - just need to add Y to the routine, attach the bed, then another CAD cycle to think about better bed mounting (I would love to secure it from below to avoid overhanging clips) and to have proper YL/YR limit contact, given the Z belt position. 

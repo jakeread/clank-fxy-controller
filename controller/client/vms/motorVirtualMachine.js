@@ -14,14 +14,14 @@ no warranty is provided, and users accept all liability.
 
 import { PK, TS, VT, EP, TIMES } from '../../osapjs/core/ts.js'
 
-/* osape-smoothieroll-drop-stepper 
-0: serialport 
-1: bus head
-2: axis pick set 
-*/
-
 export default function MotorVM(osap, route) {
-  
+
+  // ------------------------------------------------------ OSAP Interfaces, 
+
+  // 0: usb interface
+  // 1: bus interface 
+
+  // -------------------------------------------- 2: axis pick 
   let axisPickEP = osap.endpoint()
   axisPickEP.addRoute(PK.route(route).sib(2).end())
   this.setAxisPick = (pick) => {
@@ -34,6 +34,7 @@ export default function MotorVM(osap, route) {
     })
   }
   
+  // -------------------------------------------- 3: axis inversion 
   let axisInvertEP = osap.endpoint()
   axisInvertEP.addRoute(PK.route(route).sib(3).end())
   this.setAxisInversion = (invert) => {
@@ -46,7 +47,7 @@ export default function MotorVM(osap, route) {
     })
   }
 
-  // steps per unit 
+  // -------------------------------------------- 4: steps per unit 
   let spuEP = osap.endpoint()
   spuEP.addRoute(PK.route(route).sib(4).end())
   this.setSPU = (spu) => {
@@ -59,7 +60,7 @@ export default function MotorVM(osap, route) {
     })
   }
 
-  // current scaling 0-1 
+  // -------------------------------------------- 5: active current scaling 
   let cscaleEP = osap.endpoint()
   cscaleEP.addRoute(PK.route(route).sib(5).end())
   this.setCScale = (cscale) => {
@@ -72,17 +73,15 @@ export default function MotorVM(osap, route) {
     })
   }
 
-  // homing 
+  // -------------------------------------------- 6: homing 
   let homeEP = osap.endpoint()
   homeEP.addRoute(PK.route(route).sib(6).end())
-  this.home = (rate, offset) => {
-    if(!rate || !offset){
-      rate = 20
-      offset = 10
-    }
+  this.home = () => {
+    let rate = config.homeRate
+    let offset = config.homeOffset
     //console.log(rate / 60, offset)
     let datagram = new Uint8Array(8)
-    TS.write('float32', rate / 60, datagram, 0, true)
+    TS.write('float32', rate, datagram, 0, true)
     TS.write('float32', offset, datagram, 4, true)
     return new Promise((resolve, reject) => {
       homeEP.write(datagram, "acked").then(() => {
@@ -91,7 +90,7 @@ export default function MotorVM(osap, route) {
     })
   }
 
-  // home state 
+  // -------------------------------------------- 7: homing state 
   let homeStateQuery = osap.query(PK.route(route).sib(7).end())
   this.getHomeState = () => {
     return new Promise((resolve, reject) => {
@@ -119,4 +118,53 @@ export default function MotorVM(osap, route) {
       setTimeout(check, 50)
     })
   }
+
+  // ------------------------------------------------------ JS API
+
+  // default config, 
+  let config = {
+    axisPick: 0, 
+    axisInversion: false, 
+    SPU: 320,
+    currentScale: 0.2,
+    homeRate: 10,
+    homeOffset: 10
+  }
+
+  // update config 
+  this.settings = (settings, publish) => {
+    // could do: on each setup change, if flag 'publish' set, do network work here 
+    // would mean this becomes async... 
+    for(let key in settings){
+      if(key in config){
+        config[key] = settings[key]
+      } else {
+        console.warn(`motor settings spec key '${key}', it doesn't exist!`)
+      }
+    }
+  }
+
+  // publish settings to motors 
+  this.setup = async () => {
+    try {
+      await this.setAxisPick(config.axisPick)
+      await this.setAxisInversion(config.axisInversion)
+      await this.setSPU(config.SPU)
+      await this.setCScale(0.0) // default: off 
+    } catch (err) { throw err }
+  }
+
+  // enable the thing,
+  this.enable = async () => {
+    try {
+      await this.setCScale(config.currentScale)
+    } catch (err) { throw err }
+  }
+
+  this.disable = async () => {
+    try {
+      await this.setCScale(0.0)
+    } catch (err) { throw err }
+  }
+
 }

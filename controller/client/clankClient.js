@@ -21,10 +21,11 @@ import { PK, TS, VT, EP, TIMES } from '../osapjs/core/ts.js'
 import ClankVM from './vms/clankVirtualMachine.js'
 
 import Grid from '../osapjs/client/interface/grid.js' // main drawing API 
+import { Button, EZButton, TextBlock, TextInput } from '../osapjs/client/interface/basics.js'
+import { delay } from '../osapjs/core/time.js'
 import { GCodePanel } from '../osapjs/client/components/gCodePanel.js'
 import { AutoPlot } from '../osapjs/client/components/autoPlot.js'
-import { Button } from '../osapjs/client/interface/button.js'
-import { TextInput } from '../osapjs/client/interface/textInput.js'
+
 import { JogBox } from '../osapjs/client/components/jogBox.js'
 import { SaveFile } from '../osapjs/client/utes/saveFile.js'
 import TempPanel from '../osapjs/client/components/tempPanel.js'
@@ -106,46 +107,98 @@ jQuery.get('/startLocal/osapSerialBridge.js', (res) => {
 // vm, 
 let vm = new ClankVM(osap)
 
-// -------------------------------------------------------- MOTION FEED
+// ---------------------------------------------- setup routine
 
-// panel, 
-let gCodePanel = new GCodePanel(vm, 10, 10)
+// init... should setup basic motion settings and motors 
+// when green: machine is setup 
+let initBtn = new Button(10, 10, 84, 104, 'setup')
+initBtn.red()
+initBtn.onClick(async () => {
+  // setup motion basics: accel, max rates (defined in virtual machine)
+  initBtn.yellow('setting up motion settings')
+  try {
+    await vm.motion.setup()
+  } catch (err) {
+    console.error(err)
+    initBtn.red('motion setup err, see console')
+    return
+  }
+  // setup motor settings (axis pick, inversion, steps per unit)
+  for (let mot in vm.motors) {
+    initBtn.yellow(`setting up ${mot} motor...`)
+    try {
+      await vm.motors[mot].setup()
+    } catch (err) {
+      console.error(err)
+      initBtn.red(`${mot} motor setup err, see console`)
+      return
+    }
+  }
+  // enable motors 
+  initBtn.yellow(`enabling motors...`)
+  if(!motorEnableState){
+    await toggleMotorEnable()
+  }
+  // home the machine, 
+  initBtn.yellow(`homing machine...`)
+  await runHomeRoutine()
+  initBtn.green('setup ok')
+})
 
-let rearLeftZero = {
-  X: 0,
-  Y: 240,
-  Z: 121.8,
-  E: 0
+// ---------------------------------------------- motor power toggle 
+
+let motorEnableBtn = new Button(10, 130, 84, 24, 'motors: ?')
+motorEnableBtn.red()
+let motorEnableState = false 
+let toggleMotorEnable = async () => {
+  if(motorEnableState){
+    try {
+      await vm.disableMotors()
+      motorEnableState = false 
+      motorEnableBtn.yellow('motors: disabled')
+    } catch (err) { 
+      motorEnableBtn.red('motor err, see console')
+      throw err 
+    }
+  } else {
+    try {
+      await vm.enableMotors()
+      motorEnableState = true 
+      motorEnableBtn.green('motors: enabled')
+    } catch (err) { 
+      motorEnableBtn.red('motor err, see console')
+      throw err 
+    }
+  }
 }
+motorEnableBtn.onClick(toggleMotorEnable)
 
-// init... 
-let initBtn = new Button(250, 10, 84, 104, 'init')
-initBtn.onClick(() => {
-  setupMotion().then(() => {
-    console.log('setup motors, hotend pid, and declare 0, 0, 121.8')
-    return vm.initMotors()
-  }).then(() => {
-    //return hotendVm.setPIDTerms([-0.25, 0, -0.5])
-    return TIMES.delay(10)
-  }).then(() => {
-    return vm.motion.setPos(rearLeftZero)
-  }).then(() => {
-    initBtn.good('ok', 500)
-  }).catch((err) => {
-    console.error(err)
-    initBtn.bad("err", 500)
-  })
-})
+// ---------------------------------------------- home routine setup 
 
-let setStartBtn = new Button(250, 130, 84, 14, 'offset zero')
-setStartBtn.onClick(() => {
-  vm.motion.setPos(rearLeftZero).then(() => {
-    setStartBtn.good("ok", 500)
-  }).catch((err) => {
-    console.error(err)
-    setStartBtn.bad("err", 500)
-  })
-})
+let homeBtn = new Button(10, 170, 84, 24, 'home: ?')
+homeBtn.red()
+let runHomeRoutine = async () => {
+  homeBtn.yellow('awaiting motion end...')
+  await vm.motion.awaitMotionEnd()
+  homeBtn.yellow('homing Z ...')
+  await vm.homeZ()
+  homeBtn.yellow('homing XY ...')
+  await vm.homeXY() 
+  homeBtn.green('home: ok')
+}
+homeBtn.onClick(runHomeRoutine)
+
+// ---------------------------------------------- position loop toggle 
+
+let posDisplay = new TextBlock(10, 210, 84, 44, `pos: ?`, true)
+posDisplay.red()
+posDisplay.setHTML(`X: ?<br>Y: ?<br>Z: ?`)
+
+// -------------------------------------------------------- JOGGING 
+
+let jogBox = new JogBox(10, 270, vm)
+
+/*
 
 let gotoStartBtn = new Button(250, 160, 84, 14, 'goto home')
 gotoStartBtn.onClick(() => {
@@ -164,69 +217,12 @@ gotoStartBtn.onClick(() => {
   })
 })
 
-// -------------------------------------------------------- HOME 
+*/
 
-let homeBtn = new Button(350, 160, 84, 14, 'home')
-homeBtn.onClick(() => {
-  vm.home().then(() => {
-    homeBtn.good("ok")
-  }).catch((err) => {
-    console.log(err)
-    homeBtn.bad("err")
-  })
-})
+// -------------------------------------------------------- GCODE INPUT 
 
-// jog, 
-let jogBox = new JogBox(250, 190, vm)
-
-// rates / accel setup 
-let ratesXpos = 250
-let ratesYpos = 420
-let setRatesBtn = new Button(ratesXpos, ratesYpos, 84, 24, 'set acc & max fr')
-let accText = new Button(ratesXpos, ratesYpos + 40, 84, 14, 'mm/sec^2')
-let xAccVal = new TextInput(ratesXpos, ratesYpos + 70, 90, 20, '5000')
-let yAccVal = new TextInput(ratesXpos, ratesYpos + 100, 90, 20, '5000')
-let zAccVal = new TextInput(ratesXpos, ratesYpos + 130, 90, 20, '5000')
-let eAccVal = new TextInput(ratesXpos, ratesYpos + 160, 90, 20, '1000')
-
-let rateText = new Button(ratesXpos, ratesYpos + 190, 84, 14, 'mm/min')
-let xRateVal = new TextInput(ratesXpos, ratesYpos + 220, 90, 20, '12000')
-let yRateVal = new TextInput(ratesXpos, ratesYpos + 250, 90, 20, '12000')
-let zRateVal = new TextInput(ratesXpos, ratesYpos + 280, 90, 20, '12000')
-let eRateVal = new TextInput(ratesXpos, ratesYpos + 310, 90, 20, '60000')
-
-let setupMotion = () => {
-  // accel 
-  let aVals = {
-    X: parseFloat(xAccVal.value),
-    Y: parseFloat(yAccVal.value),
-    Z: parseFloat(zAccVal.value),
-    E: parseFloat(eAccVal.value)
-  }
-  for (let v in aVals) {
-    if (Number.isNaN(aVals[v])) { console.error('bad parse for float', v); return }
-  }
-  // rates
-  let rVals = {
-    X: parseFloat(xRateVal.value),
-    Y: parseFloat(yRateVal.value),
-    Z: parseFloat(zRateVal.value),
-    E: parseFloat(eRateVal.value)
-  }
-  for (let v in rVals) {
-    if (Number.isNaN(rVals[v])) { console.error('bad parse for float', r); return }
-  }
-  // network 
-  return new Promise((resolve, reject) => {
-    console.log('setting accels')
-    vm.motion.setAccels(aVals).then(() => {
-      console.log('setting rates')
-      return vm.motion.setRates(rVals)
-    }).then(() => {
-      resolve()
-    }).catch((err) => { reject(err) })
-  })
-}
+// panel, 
+// let gCodePanel = new GCodePanel(vm, 10, 10)
 
 // -------------------------------------------------------- TEMP CONTROLLER 
 

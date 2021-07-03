@@ -34,6 +34,22 @@ export default function ClankVM(osap) {
   // with base route -> embedded smoothie instance 
   this.motion = new MotionVM(osap, headRoute)
 
+  // .settings() for rates and accels, 
+  this.motion.settings({
+    accel: {  // mm/sec^2 
+      X: 5000,
+      Y: 5000,
+      Z: 2500,
+      E: 1000
+    },
+    maxRate: {
+      X: 200,
+      Y: 200,
+      Z: 150,
+      E: 100
+    }
+  })
+
   // ------------------------------------------------------ MOTORS
 
   // clank cz:
@@ -53,172 +69,153 @@ export default function ClankVM(osap) {
 
   this.motors = {
     X: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(1).end()),
-    YL: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(2).end()),
-    YR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(3).end()),
-    ZLF: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(4).end()),
-    ZLR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(5).end()),
-    ZRF: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(6).end()),
-    ZRR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(7).end()),
+    // YL: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(2).end()),
+    // YR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(3).end()),
+    // ZLF: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(4).end()),
+    // ZLR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(5).end()),
+    // ZRF: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(6).end()),
+    // ZRR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(7).end()),
   }
 
-  let motorIncludes = {
-    X: true,
-    YL: false,
-    YR: false,
-    ZLF: true,
-    ZLR: true,
-    ZRF: true,
-    ZRR: true
-  }
+  // .settings() just preps for the .init() or whatever other call, 
+  this.motors.X.settings({
+    axisPick: 0,
+    axisInversion: false,
+    SPU: 320,
+    currentScale: 0.4,
+    homeRate: 20, // units / sec
+    homeOffset: 5, // units 
+  })
+
+  /*
+  this.motors.YL.settings({
+    axisPick: 1,
+    axisInversion: true,
+    SPU: 320,
+    currentScale: 0.4,
+    homeRate: 20,
+    homeOffset: 5,
+  })
+
+  this.motors.YR.settings({
+    axisPick: 1,
+    axisInversion: false,
+    SPU: 320,
+    currentScale: 0.4,
+    homeRate: 20,
+    homeOffset: 5
+  })
 
   let zMotorSPU = 914.2857143
-  let defaultCurrent = 0.4
+  let zMotorCurrent = 0.7
 
-  this.setMotorCurrents = async () => {
-    try {
-      if (motorIncludes.X) await this.motors.X.setCScale(defaultCurrent)
-      if (motorIncludes.YL) await this.motors.YL.setCScale(defaultCurrent)
-      if (motorIncludes.YR) await this.motors.YR.setCScale(defaultCurrent)
-      if (motorIncludes.ZLF) await this.motors.ZLF.setCScale(defaultCurrent)
-      if (motorIncludes.ZLR) await this.motors.ZLR.setCScale(defaultCurrent)
-      if (motorIncludes.ZRF) await this.motors.ZRF.setCScale(defaultCurrent)
-      if (motorIncludes.ZRR) await this.motors.ZRR.setCScale(defaultCurrent)
-    } catch (err) {
-      console.error('bad motor current set')
-      throw err
+  this.motors.ZLF.settings({
+    axisPick: 2,
+    axisInversion: true,
+    SPU: zMotorSPU,
+    currentScale: zMotorCurrent,
+    homeRate: 20,
+    homeOffset: 5
+  })
+
+  this.motors.ZLR.settings({
+    axisPick: 2,
+    axisInversion: false,
+    SPU: zMotorSPU,
+    currentScale: zMotorCurrent,
+    homeRate: 20,
+    homeOffset: 5
+  })
+
+  this.motors.ZRF.settings({
+    axisPick: 2,
+    axisInversion: true,
+    SPU: zMotorSPU,
+    currentScale: zMotorCurrent,
+    homeRate: 20,
+    homeOffset: 5
+  })
+
+  this.motors.ZRR.settings({
+    axisPick: 2,
+    axisInversion: false,
+    SPU: zMotorSPU,
+    currentScale: zMotorCurrent,
+    homeRate: 20,
+    homeOffset: 5
+  })
+  */
+
+  // ------------------------------------------------------ setup / handle motor group
+
+  this.setupMotors = async () => {
+    for (let mot in this.motors) {
+      try {
+        await this.motors[mot].setup()
+      } catch (err) {
+        console.error(`failed to setup ${mot}`)
+        throw err
+      }
     }
   }
 
-  // alias... 
-  this.enableMotors = this.setMotorCurrents
+  this.enableMotors = async () => {
+    for (let mot in this.motors) {
+      try {
+        await this.motors[mot].enable()
+      } catch (err) {
+        console.error(`failed to enable ${mot}`)
+        throw err
+      }
+    }
+  }
 
   this.disableMotors = async () => {
-    try {
-      if (motorIncludes.X) await this.motors.X.setCScale(0)
-      if (motorIncludes.YL) await this.motors.YL.setCScale(0)
-      if (motorIncludes.YR) await this.motors.YR.setCScale(0)
-      if (motorIncludes.ZLF) await this.motors.ZLF.setCScale(0)
-      if (motorIncludes.ZLR) await this.motors.ZLR.setCScale(0)
-      if (motorIncludes.ZRF) await this.motors.ZRF.setCScale(0)
-      if (motorIncludes.ZRR) await this.motors.ZRR.setCScale(0)
-    } catch (err) {
-      console.error('bad motor disable set')
-      throw err
-    }
-  }
-
-  this.initMotors = async () => {
-    // I know, it's ugly;
-
-    if (motorIncludes.X) {
+    for (let mot in this.motors) {
       try {
-        await this.motors.X.setAxisPick(0)
-        await this.motors.X.setAxisInversion(false)
-        await this.motors.X.setSPU(320)
+        await this.motors[mot].disable()
       } catch (err) {
-        console.error('bad x motor init')
+        console.error(`failed to disable ${mot}`)
         throw err
       }
     }
-
-    if (motorIncludes.YL) {
-      try {
-        await this.motors.YL.setAxisPick(1)
-        await this.motors.YL.setAxisInversion(true)
-        await this.motors.YL.setSPU(320)
-      } catch (err) {
-        console.error('bad yl motor init')
-        throw err
-      }
-    }
-
-    if (motorIncludes.YR) {
-      try {
-        await this.motors.YR.setAxisPick(1)
-        await this.motors.YR.setAxisInversion(false)
-        await this.motors.YR.setSPU(320)
-      } catch (err) {
-        console.error('bad yr motor init')
-        throw err
-      }
-    }
-
-    if (motorIncludes.ZLF) {
-      try {
-        await this.motors.ZLF.setAxisPick(2)
-        await this.motors.ZLF.setAxisInversion(true)
-        await this.motors.ZLF.setSPU(zMotorSPU)
-      } catch (err) {
-        console.error('bad z left front motor init')
-        throw err
-      }
-    }
-
-    if (motorIncludes.ZLR) {
-      try {
-        await this.motors.ZLR.setAxisPick(2)
-        await this.motors.ZLR.setAxisInversion(false)
-        await this.motors.ZLR.setSPU(zMotorSPU)
-      } catch (err) {
-        console.error('bad z left rear motor init')
-        throw err
-      }
-    }
-
-    if (motorIncludes.ZRF) {
-      try {
-        await this.motors.ZRF.setAxisPick(2)
-        await this.motors.ZRF.setAxisInversion(false)
-        await this.motors.ZRF.setSPU(zMotorSPU)
-      } catch (err) {
-        console.error('bad z right front motor init')
-        throw err
-      }
-    }
-
-    if (motorIncludes.ZRR) {
-      try {
-        await this.motors.ZRR.setAxisPick(2)
-        await this.motors.ZRR.setAxisInversion(true)
-        await this.motors.ZRR.setSPU(zMotorSPU)
-      } catch (err) {
-        console.error('bad z right rear motor init')
-        throw err
-      }
-    }
-
-    await this.setMotorCurrents()
   }
 
   // ------------------------------------------------------ HOMING 
 
-  this.home = async () => {
-    try {
-      // z first, and do it twice (first is alignment, 2nd is linear tap)
-      await this.homeZ()
-      await this.homeZ()
-      // x, y
-      this.motors.X.home(1000, 5)
-      await this.motors.X.awaitHomeComplete()
-    } catch (err) {
-      throw err
+  this.homeZ = async () => {
+    // don't home if no z motors,  
+    if (!this.motors.ZLF) return
+    // runs twice: define and then... 
+    let oneZHome = async () => {
+      try { 
+        // have to start homing routines "~ synchronously"
+        this.motors.ZLF.home()
+        this.motors.ZLR.home()
+        this.motors.ZRF.home()
+        this.motors.ZRR.home()
+        // and await each of their completions, 
+        await this.motors.ZLF.awaitHomeComplete()
+        await this.motors.ZLR.awaitHomeComplete()
+        await this.motors.ZRF.awaitHomeComplete()
+        await this.motors.ZRR.awaitHomeComplete()
+      } catch (err) { throw err }
     }
+    try {
+      await oneZHome()
+      await oneZHome()
+    } catch (err) { throw err }
   }
 
-  this.homeZ = async () => {
-    // should home twice ... sync to motors, await all to complete as well (?) 
+  this.homeXY = async () => {
     try {
-      this.motors.ZLF.home(500, 2)
-      this.motors.ZLR.home(500, 2)
-      this.motors.ZRF.home(500, 2)
-      this.motors.ZRR.home(500, 2)
-      await this.motors.ZLF.awaitHomeComplete()
-      await this.motors.ZLR.awaitHomeComplete()
-      await this.motors.ZRF.awaitHomeComplete()
-      await this.motors.ZRR.awaitHomeComplete()
-    } catch (err) {
-      throw err 
-    }
+      if(this.motors.X) this.motors.X.home()
+      if(this.motors.YL) this.motors.YL.home()
+      if(this.motors.YR) this.motors.YR.home()
+      if(this.motors.X) await this.motors.X.awaitHomeComplete()
+      if(this.motors.YL) await this.motors.YL.awaitHomeComplete()
+      if(this.motors.YR) await this.motors.YR.awaitHomeComplete()
+    } catch (err) { throw err }
   }
 
   /*

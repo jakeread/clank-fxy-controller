@@ -14,8 +14,7 @@ no warranty is provided, and users accept all liability.
 
 'use strict'
 
-import { Button } from '../../osapjs/client/interface/button.js'
-import { TextInput } from '../../osapjs/client/interface/textInput.js'
+import { Button, TextInput } from '../../osapjs/client/interface/basics.js'
 import { AutoPlot } from '../../osapjs/client/components/autoPlot.js'
 import { SaveFile } from '../../osapjs/client/utes/saveFile.js'
 import { TIMES } from '../../osapjs/core/ts.js'

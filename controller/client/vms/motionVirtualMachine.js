@@ -154,7 +154,8 @@ export default function MotionVM(osap, route){
   // endpoint to set per-axis accelerations,
   let accelEP = osap.endpoint()
   accelEP.addRoute(PK.route(route).sib(7).end())
-  this.setAccels = (accels) => { // float array, len 4 XYZE 
+  this.setAccels = (accels) => { 
+    // mm/sec/sec 
     let wptr = 0
     let datagram = new Uint8Array(16)
     wptr += TS.write('float32', accels.X, datagram, wptr, true)
@@ -174,10 +175,8 @@ export default function MotionVM(osap, route){
 
   let rateEP = osap.endpoint()
   rateEP.addRoute(PK.route(route).sib(8).end())
-  this.setRates = (rates) => {
-    // in firmware we think of mm/sec, 
-    // in gcode and up here we think in mm/minute 
-    // so conversion happens here 
+  this.setMaxRates = (rates) => {
+    // mm / sec 
     let wptr = 0
     let datagram = new Uint8Array(16)
     wptr += TS.write('float32', rates.X / 60, datagram, wptr, true)
@@ -194,4 +193,59 @@ export default function MotionVM(osap, route){
       }).catch((err) => { reject(err) })
     })
   } 
+
+  // ------------------------------------------------------ JS API 
+
+  let config = {
+    accel: { // mm/sec/sec
+      X: 1000,
+      Y: 1000,
+      Z: 1000,
+      E: 1000
+    },
+    maxRate: {  // mm/sec 
+      X: 100,
+      Y: 100, 
+      Z: 100,
+      E: 100
+    }
+  }
+
+  this.settings = (settings) => {
+    // this could be a proper forever-recursion to diff against 
+    // default config setup... however;
+    for(let key in settings){ 
+      if(key == 'accel' && key in config){
+        for(let axis in settings.accel){
+          if(axis in config.accel){
+            config.accel[axis] = settings.accel[axis]
+          } else {
+            console.warn(`motion/accel settings spec axis '${axis}', it doesn't exist`)
+          }
+        }
+      } else if (key == 'maxRate' && key in config){
+        for(let axis in settings.maxRate){
+          if(axis in config.maxRate){
+            config.maxRate[axis] = settings.maxRate[axis]
+          } else {
+            console.warn(`motion/maxRate settings spec axis '${axis}', it doesn't exist`)
+          }
+        }
+      } else {
+        console.warn(`motion settings spec key '${key}', it doesn't exist!`)
+      }
+    }
+    // watch for bad keys ? 
+  }
+
+  this.setup = async () => {
+    try {
+      await this.awaitMotionEnd()
+      await this.setAccels(config.accel)
+      await this.setMaxRates(config.maxRate)
+    } catch (err) {
+      throw err 
+    }
+  }
+
 }
