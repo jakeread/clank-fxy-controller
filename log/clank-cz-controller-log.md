@@ -41,6 +41,15 @@
 - CL & OL motors should work together, shouldn't all have to be
 - do Z first, avoid this knock 
 
+## 2021 07 03 
+
+Alright, back at this. First some refreshers: I want a better motor interface / JS-side thing (to run initializations), and then a good homing routine. 
+
+- motor code, cz-head code are not up with new submodule build. 
+- thinking about step-via-byte-bit tick rather than floating point witchiness for motion (this is more work) 
+
+Lots to clean here, kind of forever chasing the tail though. One more crack at the motor API is worthwhile... adding those to a vm should make sense to folks. I don't need to change the stepper code to do that, but since I'm making a pass through I might as well. 
+
 ## 2021 05 19 
 
 I've homing together, Z being the most difficult - just need to add Y to the routine, attach the bed, then another CAD cycle to think about better bed mounting (I would love to secure it from below to avoid overhanging clips) and to have proper YL/YR limit contact, given the Z belt position. 
