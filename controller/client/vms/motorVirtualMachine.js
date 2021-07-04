@@ -79,7 +79,6 @@ export default function MotorVM(osap, route) {
   this.home = () => {
     let rate = config.homeRate
     let offset = config.homeOffset
-    //console.log(rate / 60, offset)
     let datagram = new Uint8Array(8)
     TS.write('float32', rate, datagram, 0, true)
     TS.write('float32', offset, datagram, 4, true)

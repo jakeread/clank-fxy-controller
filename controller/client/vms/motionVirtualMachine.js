@@ -179,11 +179,12 @@ export default function MotionVM(osap, route){
     // mm / sec 
     let wptr = 0
     let datagram = new Uint8Array(16)
-    wptr += TS.write('float32', rates.X / 60, datagram, wptr, true)
-    wptr += TS.write('float32', rates.Y / 60, datagram, wptr, true)
-    wptr += TS.write('float32', rates.Z / 60, datagram, wptr, true)
+    console.warn('write rate', rates.X)
+    wptr += TS.write('float32', rates.X, datagram, wptr, true)
+    wptr += TS.write('float32', rates.Y, datagram, wptr, true)
+    wptr += TS.write('float32', rates.Z, datagram, wptr, true)
     if (rates.E) {
-      wptr += TS.write('float32', rates.E / 60, datagram, wptr, true)
+      wptr += TS.write('float32', rates.E, datagram, wptr, true)
     } else {
       wptr += TS.write('float32', 100, datagram, wptr, true)
     }

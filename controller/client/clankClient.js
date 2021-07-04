@@ -223,7 +223,7 @@ posDisplay.setHTML(`X: ?<br>Y: ?<br>Z: ?`)
 
 // -------------------------------------------------------- JOGGING 
 
-let jogBox = new JogBox(10, 270, vm)
+let jogBox = new JogBox(10, 270, vm, 200)
 
 /*
 

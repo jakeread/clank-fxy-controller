@@ -34,6 +34,19 @@ wherein `cz` should be renamed `fxy` and I reuse this code for *lots of things*
 - CL & OL motors should work together, shouldn't all have to be the same 
 - do Z first, avoid this knock 
 
+## 2021 07 04 
+
+OK, completing the wake up is:
+
+- jog keys & position keepalive query 
+- loadcell hookup, calibration, new code 
+- bed, thermistor hookup 
+- extruder hookup 
+
+Then I should basically run some test prints - if I am printing by EOD, I should be stoked. 
+
+Jogging is OK but rates are very low. I'm dividing by 60 somewhere I can feel it. Yep - wow, I've been doing that in embedded and in JS! Yeesh. 
+
 ## 2021 07 03 
 
 Alright, back at this. First some refreshers: I want a better motor interface / JS-side thing (to run initializations), and then a good homing routine. 

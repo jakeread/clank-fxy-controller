@@ -55,8 +55,8 @@ Planner::Planner()
 void Planner::config_load()
 {   
     #warning replaced with defaults 
-    this->junction_deviation = 0.05F; //THEKERNEL->config->value(junction_deviation_checksum)->by_default(0.05F)->as_number();
-    this->z_junction_deviation = 0.05F; //THEKERNEL->config->value(z_junction_deviation_checksum)->by_default(NAN)->as_number(); // disabled by default
+    this->junction_deviation = 0.025F; //THEKERNEL->config->value(junction_deviation_checksum)->by_default(0.05F)->as_number();
+    this->z_junction_deviation = 0.025F; //THEKERNEL->config->value(z_junction_deviation_checksum)->by_default(NAN)->as_number(); // disabled by default
     this->minimum_planner_speed = 0.00F; //THEKERNEL->config->value(minimum_planner_speed_checksum)->by_default(0.0f)->as_number();
 }
 

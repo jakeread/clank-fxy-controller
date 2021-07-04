@@ -50,7 +50,7 @@ boolean onMoveData(uint8_t* data, uint16_t len){
       // do load 
       float target[3] = {targetChunks[0].f, targetChunks[1].f, targetChunks[2].f };
       //sysError("targets, rate: " + String(target[0], 6) + ", " + String(target[1], 6) + ", " + String(target[2], 6) + ", " + String(feedrateChunk.f, 6));
-      planner->append_move(target, SR_NUM_MOTORS, feedrateChunk.f / 60, targetChunks[3].f); // mm/min -> mm/sec 
+      planner->append_move(target, SR_NUM_MOTORS, feedrateChunk.f, targetChunks[3].f); // mm/min -> mm/sec 
       return true; 
     }
   } else {
