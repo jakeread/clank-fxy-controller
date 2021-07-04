@@ -1,3 +1,7 @@
+# Clank Controller Logs
+
+wherein `cz` should be renamed `fxy` and I reuse this code for *lots of things* 
+
 ## Known Issues
 
 - notes in 'virtualMachine.js' on promise timeouts 
@@ -5,40 +9,29 @@
 - the PWM/5V/GND label on the esc board is backwards 
 - setcurrent & other (?) ucbus chb transmissions appear to drop the last byte, or something like this - so i.e. remote z current resetting doesn't work 
 
-### Clank CZ New Controller 
-
-- change gcode parsing system: maybe delete these js modules, instead do direct vm call / which returns the osap.write() ? or so, idk how you want to do this 
-- gcode delivery: need to change the timeout scale here to await those long acks for potentially lengthy gcodes... 
-
-### Friday
-
 ### Bugs
 
-- stress test jogging: what's up with this "recieved ... for unregistered query... ?" business? polling is using network bandwidth, more stuff showing up... I think this is the desire to make a more-robust network. fuzz testing, flow control that rocks, etc. a challenge 
-- extruder moves: are scaled to volume, but moves are linear? 
-  - or simple over-extrusion? calculate the extruder SPU 
-  - do test prints w/ no retraction, to get basics straight
-  - add retraction, see if maybe direction misses, or something? 
-- during temp. polling, often find "bad walk for ptr key 1 at 0" - what's this? 
+- wth is this motor knock? 
+  - add bypass caps first, might be drivers giving up? 
+  - currently: occurs when cscale set above 0.5 
+- what are these lost temperature packets?
+  - log them when i.e. bad ptr walks 
+  - I would say this is not rare, and is likely bus muxing: fix w/ new timebase word delineation 
 
 ### Motion Control Wishlist
 
-- per axis acceleration & top speed settings
-- G92 that works... shouldn't be too difficult 
-- remote disable motors
-- remote set motor current 
-- motion control vm sub-module .js 
-- still doesn't home, there, lad 
+- integrate the closed loop motors, my dude ! they will wrip !
+- consider step/dir network interface rather than (much slower) floating point updates 
+  - also 'centralizes' abs-max-rates w/r/t tick timing, which is tite 
+- splines, baby: ft. brute force integration lookahead on the GHz micro? 
+  - w/ realtime motor feedback / accel state fitting (torque curves, friction estimates) 
+  - maybe the above doesn't require splines, consider that 
 - bed probe / kinematic corrections 
-- wth is this motor knock? 
-  - add bypass caps first, might be drivers giving up? 
-- what are these lost temperature packets?
-  - log them when i.e. bad ptr walks 
-- NIST goal is to have dense path data: at each poll, get position, extrusion rate, load, temps ... this means good querying, and probably in bus time-base. 
+- mocontrol that lives on the pi / server that lives on the machine 
 
 ### Motion Control Closed Loop Overhaul
 
-- CL & OL motors should work together, shouldn't all have to be
+- CL & OL motors should work together, shouldn't all have to be the same 
 - do Z first, avoid this knock 
 
 ## 2021 07 03 
@@ -68,11 +61,42 @@ w/r/t mm/min or mm/sec spec: I *want* everything to be base mm/sec units, I'll d
 
 The settings-update stuff expands into a rabbit hole of js-object-diffing... 
 
-- setup motion, then init motors, then home in sequence
+OK, setup routine feels good for X motor, I'll update firmware on the rest & see if I can keep playing w/ the whole thing. Then a position loop, slightly reworked jogging, and I have a solid base-motion-system-setup. From there is application specific loadcell, hotend / heatbed, etc. I guess I'll wrap it all into one. 
+
+I've all of the motors hooked up - a few things: first off, the og-module motor drivers are not moving, though they're responding to init calls. It might be that the limit doesn't map onto the same pins (?) in the module, but that's not true. I may have just happened to have soldered those limits poorly... 
+
+I might take the time now to swap the z motors all for closed loop anyways: this machine is going to (hopefully) haul big, heavy clay extruders, so we might want the closed loop function. That'd also mean glueing some magnets on each... yeesh. I guess there's no time like the present, it's all in-path anyways, and the XY motors are already setup for this. 
+
+I suspect as well that (as is tradition) as I carry on making this thing work I'll find more bus errors - lost bytes on interrupts. I should see if an update to the D21 timing-based-delineation doesn't help to fix this. 
+
+OK big swap of z-motors, now I'm finding that actually the hangup seems to be in code - yeah, I'm overwriting the serial buffer. That shouldn't happen, so g*damn flow control is broken someplace? 
+
+- writing to home... serial overflow? what gives? 
+  - worked before, and I may have decreased serial spaces... 
+
+So I am learning that if we don't do an `await` call before some promise, a failure won't be caught in a try / catch block. These were working fine before I guess because the USB bug wasn't here - not sure where that showed up. I should address it first, it's lower level. 
+
+Yep OK this is bad vertex config on my end - the serialport flowcontrol is not intrinsically linked to the vertex stack sizes - and osap vertex stacks are currently all the same length, which is totally broken. I knew that at least. Vertices here had also been downsized to 128 bytes each - they were previously ~ 512 or 1024 in the D51? So that'd be ~ first order trouble for OSAP. I can fix it by just eating RAM in the D51 though. 
+
+Then, to home synchronously, I'll need a sync-all method... but I can ignore this so long as it works, so I will do for now. 
+
+Last struggle - there's a momentary knock I get when I hold motors above 0.6 (or so?) cscale - shows up after maybe 1 ~ 2 minutes of bare holding. I figure this aught to be a heating thing - drivers getting tired and periodically shutting down. I'll keep my eye on this for sure. 
+
+...
+
+Sheesh, alright well I think the motion systems are... sound-ish by now. As always there's a laundry list of stuff. To get going with actual work, I still have a handful of things
+
+- set 'parked' position after home & have go-to-park button, 
 - after setup started, do periodic position updates as a keepalive,
   - if failure, setup btn goes red, otherwise update position ticker 
 - rebuild jog... yikes 
   - use textInput.getNumber() method
+- hookup the loadcells
+- hookup the bed heater & the hotend / extruder motor 
+  - init these separately ? probably on-model with the home / motor buttons... that's not bad 
+- prep 4 gcode ingestion, test making 
+
+I guess I should try to get that all together by EOD tomorrow. Feels a bit like I'm chasing my tail here: OSAP needs some core work (vertex sizes are not differentiated but should be), and the bus needs some core work (to do timing a-la D21 systems), and I want to get the clay extruder also "going" *and* that might require some closed loop motor hooplah. Indeed it very probably does, to haul this axis. In any case CL motors > OL motors by some degree, and I should have them hooked up regardless. 
 
 ## 2021 05 19 
 

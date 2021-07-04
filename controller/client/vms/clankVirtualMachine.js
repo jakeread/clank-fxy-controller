@@ -57,10 +57,10 @@ export default function ClankVM(osap) {
   // X:     320     false     1
   // YL:    320     true      2
   // YR:    320     false     3
-  // ZLF:   x       x         4
-  // ZLR:   x                 5
-  // ZRF:   x                 6
-  // ZRR:   x                 7
+  // ZLF:   x       x         4 0b100
+  // ZLR:   x                 5 0b101
+  // ZRF:   x                 6 0b110
+  // ZRR:   x                 7 0b111
   // E: included here (?) shouldn't be 
   // E:     550     true 
   // per bondtech, for BMG on 16 microsteps, do 415: we are 32 microsteps 
@@ -69,12 +69,12 @@ export default function ClankVM(osap) {
 
   this.motors = {
     X: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(1).end()),
-    // YL: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(2).end()),
-    // YR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(3).end()),
-    // ZLF: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(4).end()),
-    // ZLR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(5).end()),
-    // ZRF: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(6).end()),
-    // ZRR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(7).end()),
+    YL: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(2).end()),
+    YR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(3).end()),
+    ZLF: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(4).end()),
+    ZLR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(5).end()),
+    ZRF: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(6).end()),
+    ZRR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(7).end()),
   }
 
   // .settings() just preps for the .init() or whatever other call, 
@@ -87,7 +87,6 @@ export default function ClankVM(osap) {
     homeOffset: 5, // units 
   })
 
-  /*
   this.motors.YL.settings({
     axisPick: 1,
     axisInversion: true,
@@ -107,14 +106,14 @@ export default function ClankVM(osap) {
   })
 
   let zMotorSPU = 914.2857143
-  let zMotorCurrent = 0.7
+  let zMotorCurrent = 0.5
 
   this.motors.ZLF.settings({
     axisPick: 2,
-    axisInversion: true,
+    axisInversion: false,
     SPU: zMotorSPU,
     currentScale: zMotorCurrent,
-    homeRate: 20,
+    homeRate: 10,
     homeOffset: 5
   })
 
@@ -123,16 +122,16 @@ export default function ClankVM(osap) {
     axisInversion: false,
     SPU: zMotorSPU,
     currentScale: zMotorCurrent,
-    homeRate: 20,
+    homeRate: 10,
     homeOffset: 5
   })
 
   this.motors.ZRF.settings({
     axisPick: 2,
-    axisInversion: true,
+    axisInversion: false,
     SPU: zMotorSPU,
     currentScale: zMotorCurrent,
-    homeRate: 20,
+    homeRate: 10,
     homeOffset: 5
   })
 
@@ -141,10 +140,9 @@ export default function ClankVM(osap) {
     axisInversion: false,
     SPU: zMotorSPU,
     currentScale: zMotorCurrent,
-    homeRate: 20,
+    homeRate: 10,
     homeOffset: 5
   })
-  */
 
   // ------------------------------------------------------ setup / handle motor group
 
@@ -186,20 +184,26 @@ export default function ClankVM(osap) {
   this.homeZ = async () => {
     // don't home if no z motors,  
     if (!this.motors.ZLF) return
+    try {
+      await this.motion.awaitMotionEnd()
+    } catch (err) { throw err }
     // runs twice: define and then... 
     let oneZHome = async () => {
-      try { 
+      try {
         // have to start homing routines "~ synchronously"
-        this.motors.ZLF.home()
-        this.motors.ZLR.home()
         this.motors.ZRF.home()
         this.motors.ZRR.home()
+        this.motors.ZLF.home()
+        this.motors.ZLR.home()
         // and await each of their completions, 
         await this.motors.ZLF.awaitHomeComplete()
         await this.motors.ZLR.awaitHomeComplete()
         await this.motors.ZRF.awaitHomeComplete()
         await this.motors.ZRR.awaitHomeComplete()
-      } catch (err) { throw err }
+      } catch (err) { 
+        console.error(err)
+        //throw err 
+      }
     }
     try {
       await oneZHome()
@@ -209,12 +213,13 @@ export default function ClankVM(osap) {
 
   this.homeXY = async () => {
     try {
-      if(this.motors.X) this.motors.X.home()
-      if(this.motors.YL) this.motors.YL.home()
-      if(this.motors.YR) this.motors.YR.home()
-      if(this.motors.X) await this.motors.X.awaitHomeComplete()
-      if(this.motors.YL) await this.motors.YL.awaitHomeComplete()
-      if(this.motors.YR) await this.motors.YR.awaitHomeComplete()
+      await this.motion.awaitMotionEnd()
+      if (this.motors.X) await this.motors.X.home()
+      if (this.motors.YL) await this.motors.YL.home()
+      if (this.motors.YR) await this.motors.YR.home()
+      if (this.motors.X) await this.motors.X.awaitHomeComplete()
+      if (this.motors.YL) await this.motors.YL.awaitHomeComplete()
+      if (this.motors.YR) await this.motors.YR.awaitHomeComplete()
     } catch (err) { throw err }
   }
 

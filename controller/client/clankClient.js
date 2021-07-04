@@ -137,11 +137,23 @@ initBtn.onClick(async () => {
   // enable motors 
   initBtn.yellow(`enabling motors...`)
   if(!motorEnableState){
-    await toggleMotorEnable()
+    try {
+      await toggleMotorEnable()
+    } catch (err) {
+      console.error(err)
+      initBtn.red(`failed to enable motors, see console`)
+      return
+    }
   }
   // home the machine, 
   initBtn.yellow(`homing machine...`)
-  await runHomeRoutine()
+  // try {
+  //   await runHomeRoutine()
+  // } catch (err) {
+  //   console.error(err)
+  //   initBtn.red(`failed to home machine, see console`)
+  //   return
+  // }
   initBtn.green('setup ok')
 })
 
@@ -179,11 +191,26 @@ let homeBtn = new Button(10, 170, 84, 24, 'home: ?')
 homeBtn.red()
 let runHomeRoutine = async () => {
   homeBtn.yellow('awaiting motion end...')
-  await vm.motion.awaitMotionEnd()
+  try {
+    await vm.motion.awaitMotionEnd()
+  } catch (err) {
+    console.error(err)
+    homeBtn.red('motion end err, see console')
+  }
   homeBtn.yellow('homing Z ...')
-  await vm.homeZ()
+  try {
+    await vm.homeZ()
+  } catch (err) {
+    console.error(err)
+    homeBtn.red('Z homing err, see console')
+  }
   homeBtn.yellow('homing XY ...')
-  await vm.homeXY() 
+  try {
+    await vm.homeXY() 
+  } catch (err) {
+    console.error(err)
+    homeBtn.red('XY homing err, see console')
+  }
   homeBtn.green('home: ok')
 }
 homeBtn.onClick(runHomeRoutine)
