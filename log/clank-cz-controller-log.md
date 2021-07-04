@@ -47,6 +47,24 @@ Then I should basically run some test prints - if I am printing by EOD, I should
 
 Jogging is OK but rates are very low. I'm dividing by 60 somewhere I can feel it. Yep - wow, I've been doing that in embedded and in JS! Yeesh. 
 
+Alright fixed it, have the bus malformed-packet bug appearing, no termination available anywhere I'll bet that's what's up - turning the last Z motor on to that now, might help if it's actually bad bytes: if it's this interrupt thing, will have to wait for better bus code. 
+
+So - a keepalive query... 
+
+Since I am querying position on the vm (with the query *and* a jog) twice with the same endpoint, OSAP locks me out from making two queries before either is back. I could amend OSAP to allow it - keeping multiple queries issued from the same node. This is potentially a rabbit hole, but maybe not? I could also implement a js statemachine where if I call the vm.motion.getPos() twice before one comes back, I issue the same reply to both promises. This would keep network traffic lower and is anyways how I thought about doing these kinds of things. 
+
+I could implement that anyways at the .pull() on the core query code. 
+
+Nice, that was like 3 lines of code. Sliq. 
+
+Now lots of firmwares to update for submodule'd code:
+
+- temperature controllers
+- loadcell reading 
+- servo actuator 
+
+Then it's bringing js machines online for each. 
+
 ## 2021 07 03 
 
 Alright, back at this. First some refreshers: I want a better motor interface / JS-side thing (to run initializations), and then a good homing routine. 

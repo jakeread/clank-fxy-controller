@@ -146,7 +146,7 @@ initBtn.onClick(async () => {
     }
   }
   // home the machine, 
-  initBtn.yellow(`homing machine...`)
+  // initBtn.yellow(`homing machine...`)
   // try {
   //   await runHomeRoutine()
   // } catch (err) {
@@ -154,6 +154,8 @@ initBtn.onClick(async () => {
   //   initBtn.red(`failed to home machine, see console`)
   //   return
   // }
+  // start position loop (?) 
+  posDisplayKick()
   initBtn.green('setup ok')
 })
 
@@ -217,9 +219,38 @@ homeBtn.onClick(runHomeRoutine)
 
 // ---------------------------------------------- position loop toggle 
 
-let posDisplay = new TextBlock(10, 210, 84, 44, `pos: ?`, true)
+let posDisplay = new Button(10, 210, 84, 44, `pos: ?`, true)
 posDisplay.red()
 posDisplay.setHTML(`X: ?<br>Y: ?<br>Z: ?`)
+let posDisplayRunning = false 
+let runPosUpdate = async () => {
+  if(posDisplayRunning){
+    try {
+      let pos = await vm.motion.getPos()
+      posDisplay.green()
+      posDisplay.setHTML(`
+        X: ${pos.X.toFixed(2)}<br>
+        Y: ${pos.Y.toFixed(2)}<br>
+        Z: ${pos.Z.toFixed(2)}
+        `)
+      setTimeout(runPosUpdate, 10)
+    } catch (err) {
+      console.error(err)
+      posDisplay.red('position update err, see console')
+    }  
+  } else {
+    posDisplay.grey()
+  }
+}
+let posDisplayKick = () => {
+  if(posDisplayRunning){
+    posDisplayRunning = false 
+  } else {
+    posDisplayRunning = true 
+    runPosUpdate()
+  }
+}
+posDisplay.onClick(posDisplayKick)
 
 // -------------------------------------------------------- JOGGING 
 

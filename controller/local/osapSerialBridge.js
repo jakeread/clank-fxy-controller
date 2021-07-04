@@ -160,7 +160,7 @@ let startSerialPort = (pid, options) => {
         }
         // 1st byte is count of how many acks this loop, 
         rcrxb += decoded[0] 
-        console.log('rcrxb', rcrxb)
+        //console.log('rcrxb', rcrxb)
         // hotswitch low level escapes 
         if(decoded[2] == PK.LLESCAPE.KEY){
           let str = TS.read('string', decoded, 2, true).value
