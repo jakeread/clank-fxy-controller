@@ -256,8 +256,48 @@ posDisplay.onClick(posDisplayKick)
 
 let jogBox = new JogBox(10, 270, vm, 200)
 
-/*
+// -------------------------------------------------------- LOADCELL VM 
 
+let loadcellVm = new LoadVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(9).end())
+//let loadPanel = new LoadPanel(loadcellVm, 350, 830, "HE loadcell")
+// 0: rear
+// 1: front left
+// 2: front right
+let calibReadings = [
+  [ [-62200,  -52160, -42090, -11900, 38360],
+    [0,       -100,   -200,   -500,   -1000]  ],
+  [ [45650,   57850,  68120,  101780, 158100],
+    [0,       -100,   -200,   -500,   -1000]  ],
+  [ [-28050,  -39050, -50050, -83000, -131200],
+    [0,       -100,   -200,   -500,   -1000]  ]
+]
+loadcellVm.setObservations('grams', calibReadings)
+
+let loadTestBtn = new Button(110, 10, 104, 54, 'tst', true)
+loadTestBtn.onClick(() => {
+  runLoad()
+})
+let filts = [0,0,0]
+let alpha = 0.5
+let runLoad = async () => {
+  try {
+    let rds = await loadcellVm.getReading()
+    for(let i = 0; i < 3; i ++){
+      filts[i] = filts[i] * (1-alpha) + rds[i] * alpha 
+    }
+    loadTestBtn.setHTML(`
+    0: ${filts[0].toFixed(2)}<br>
+    1: ${filts[1].toFixed(2)}<br>
+    2: ${filts[2].toFixed(2)}
+    `)
+    setTimeout(runLoad, 10)
+  } catch (err) { 
+    console.log(err)
+    loadTestBtn.red('err')
+  }
+}
+
+/*
 let gotoStartBtn = new Button(250, 160, 84, 14, 'goto home')
 gotoStartBtn.onClick(() => {
   vm.motion.awaitMotionEnd().then(() => {
@@ -295,12 +335,7 @@ gotoStartBtn.onClick(() => {
 // -------------------------------------------------------- LOADCELL CONTROLLER
 
 /*
-let loadcellVm = new LoadVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(7).end())
-//let loadPanel = new LoadPanel(loadcellVm, 350, 830, "HE loadcell")
-let readings = [
-  [-124000, -137000, -147000, -159000, -171000, -184000, -195000, -225000, -350000],
-  [0, -50, -100, -150, -200, -250, -300, -500, -1000]];
-loadcellVm.setObservations(readings, 'grams')
+
 */
 
 // -------------------------------------------------------- Filament Data Gen 

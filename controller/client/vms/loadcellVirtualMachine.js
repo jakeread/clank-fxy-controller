@@ -17,30 +17,41 @@ import LeastSquares from '../../osapjs/client/utes/lsq.js'
 
 export default function LoadVM(osap, route) {
   // want a calibration 
-  let lsq = new LeastSquares()
-  this.offset = 0 
+  let lsq = [new LeastSquares(), new LeastSquares(), new LeastSquares()]
+  this.offsets = [0, 0, 0] 
 
-  this.setObservations = (xy, units) => {
+  this.setObservations = (units, xy) => {
     if(units == 'grams'){
-      console.log(xy[1])
-      for(let i = 0; i < xy[1].length; i ++){
-        xy[1][i] = xy[1][i] * 0.00980665;
-        console.log(xy[1][i])
+      for(let ch = 0; ch < 3; ch ++){
+        for(let i = 0; i < xy[ch][1].length; i ++){
+          xy[ch][1][i] = xy[ch][1][i] * 0.00980665;
+        }
+        lsq[ch].setObservations(xy[ch])
       }
     }
-    lsq.setObservations(xy)
   }
 
   let readingQuery = osap.query(PK.route(route).sib(2).end())
-  this.getReading = (raw = false) => {
+  this.getReading = (offset = true, raw = false) => {
     return new Promise((resolve, reject) => {
       readingQuery.pull().then((data) => {
-        let reading = TS.read("int32", data, 0, true)
-        reading = lsq.predict(reading)
-        if(raw){ 
-          resolve(reading)
+        let readings = [
+          TS.read("int32", data, 0, true),
+          TS.read("int32", data, 4, true),
+          TS.read("int32", data, 8, true)
+        ]
+        let calibrated = [0,0,0]
+        let offset = [0,0,0]
+        for(let ch = 0; ch < 3; ch ++){
+          calibrated[ch] = lsq[ch].predict(readings[ch])
+          offset[ch] = calibrated[ch] + this.offsets[ch]
+        }
+        if(!offset){ 
+          resolve(calibrated)
+        } else if (raw){
+          resolve(readings)
         } else {
-          resolve(reading + this.offset)
+          resolve(offset)
         }
       }).catch((err) => { reject(err) })
     })
@@ -48,8 +59,10 @@ export default function LoadVM(osap, route) {
 
   this.tare = () => {
     return new Promise((resolve, reject) => {
-      this.getReading(true).then((rd) => {
-        this.offset = - rd
+      this.getReading(false).then((rd) => {
+        for(let ch = 0; ch < 3; ch ++){
+          this.offsets[ch] = -rd[ch]
+        }
         resolve()
       }).catch((err) => {
         reject(err)

@@ -172,7 +172,7 @@ let startSerialPort = (pid, options) => {
       // implement tx
       serVPort.send = (buffer) => {
         rcrxb -= 1 
-        console.log('rcrxb', rcrxb)
+        //console.log('rcrxb', rcrxb)
         port.write(COBS.encode(buffer))
         if (LOGSERTX) {
           console.log('SERPORT Tx')

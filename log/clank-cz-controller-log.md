@@ -65,6 +65,12 @@ Now lots of firmwares to update for submodule'd code:
 
 Then it's bringing js machines online for each. 
 
+Awh sheesh the loadcell reading protocol is something I bit banged myself... going to need to read all three channels now. 
+
+That was fine, ~ 3 hours including new calibration. 
+
+Next would be the servo & temperature controllers. Seems like a lot of kit, three days now just on system wake-up! IDK why I always clean code like this. 
+
 ## 2021 07 03 
 
 Alright, back at this. First some refreshers: I want a better motor interface / JS-side thing (to run initializations), and then a good homing routine. 
