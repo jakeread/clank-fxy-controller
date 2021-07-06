@@ -34,6 +34,31 @@ wherein `cz` should be renamed `fxy` and I reuse this code for *lots of things*
 - CL & OL motors should work together, shouldn't all have to be the same 
 - do Z first, avoid this knock 
 
+## 2021 07 05
+
+Working through:
+
+- servo hookup / code 
+- heat machines hookup 
+
+Have some error with the servo board... nothing is getting to it. Just address? Just bad code migration, fixed now. Heat machines next. 
+
+- hotend & 'wiring' and filament loom 
+- bed & contacts & power draw ? 
+- tempvm returns, temppanel as well? 
+
+Alright the bed isn't reading any temps... I think the pogo connectors are not working excellently... I could just solder these mf to start. 
+
+Fixed it with some larger mount holes - then blew up the sense resistor, re-soldered the fets and gate driver, now we're back and it's running. Just need to clean up the temperature panel. That was fast. 
+
+So - the extruder. Looks OK. So systems are all up. 
+
+Last mechanical bug: when the thing is leaned back on a z-drop, the front limit switches don't make. The quick remedy is a few spacers. I'm going to delete the hella-tram clearances on the YLF and YLR assemblies in fusion also, let the thing jam, it might actually be useful. 
+
+Alright - added some spacers, homes should work always now. 
+
+So we are woken up, tomorrow I will be printing & squishing. Maybe making stiffness maps... 
+
 ## 2021 07 04 
 
 OK, completing the wake up is:

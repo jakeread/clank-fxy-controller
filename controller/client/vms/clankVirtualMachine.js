@@ -52,7 +52,7 @@ export default function ClankVM(osap) {
 
   // ------------------------------------------------------ MOTORS
 
-  // clank cz:
+  // clank fxy:
   // AXIS   SPU     INVERT    BUS
   // X:     320     false     1
   // YL:    320     true      2
@@ -223,12 +223,10 @@ export default function ClankVM(osap) {
     } catch (err) { throw err }
   }
 
-  /*
-
   // ------------------------------------------------------ TOOLCHANGER
 
   let tcServoEP = osap.endpoint()
-  tcServoEP.addRoute(TS.route().portf(0).portf(1).busf(1, 5).end(), TS.endpoint(0, 0), 512)
+  tcServoEP.addRoute(PK.route(headRoute).sib(1).bfwd(8).sib(2).end())
 
   this.setTCServo = (micros) => {
     let wptr = 0
@@ -237,7 +235,7 @@ export default function ClankVM(osap) {
     wptr += TS.write('uint32', micros, datagram, wptr, true)
     // do the shipment
     return new Promise((resolve, reject) => {
-      tcServoEP.write(datagram).then(() => {
+      tcServoEP.write(datagram, "acked").then(() => {
         console.warn('tc set', micros)
         resolve()
       }).catch((err) => {
@@ -251,8 +249,10 @@ export default function ClankVM(osap) {
   }
 
   this.closeTC = () => {
-    return this.setTCServo(875)
+    return this.setTCServo(840)
   }
+
+  /*
 
   // ------------------------------------------------------ TOOL CHANGING
 
@@ -260,12 +260,6 @@ export default function ClankVM(osap) {
   // from back left 0,0 
   // put-down HE at (23.8, -177) -> (23.8, -222.6) -> release -> (-17.8, -208.6) clear -> (-17.8, -183)
   // { position: {X: num, Y: num, Z: num}, rate: num }
-
-  let delay = (ms) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => { resolve() }, ms)
-    })
-  }
 
   this.delta = async (move, rate) => {
     try {
@@ -352,76 +346,6 @@ export default function ClankVM(osap) {
       console.error(`at T${num} pick`)
       throw err
     }
-  }
-
-  // ------------------------------------------------------ HEATER JUNK 
-
-  this.tvm = []
-  this.tvm[0] = new TempVM(osap, TS.route().portf(0).portf(1).busf(1, 7).end())
-  this.tvm[1] = new TempVM(osap, TS.route().portf(0).portf(1).busf(1, 9).end())
-
-  // ------------------------------------------------------ LOADCELL 
-
-  this.loadcell = new LoadVM(osap, TS.route().portf(0).portf(1).busf(1, 8).end())
-  let readings = [
-    [-124000, -137000, -147000, -159000, -171000, -184000, -195000, -225000, -350000],
-    [0, -50, -100, -150, -200, -250, -300, -500, -1000]]
-  this.loadcell.setObservations(readings, 'grams')
-
-  // this.pullExtruderTest = () => {
-  //   return new Promise((resolve, reject) => {
-  //     let res = {
-  //       temp: undefined, 
-  //       speed: undefined,
-  //       load: undefined
-  //     }
-  //     this.tvm[0].getExtruderTemp().then((temp) => {
-  //       res.temp = temp
-  //       return delay(10)
-  //     }).then(() => {
-  //       return this.getSpeeds()
-  //     }).then((speeds) => {
-  //       res.speed = speeds.E 
-  //       return delay(10)
-  //     }).then(() => {
-  //       return this.loadcell.getReading()
-  //     }).then((load) => {
-  //       res.load = load
-  //       resolve(res)
-  //     }).catch((err) => {
-  //       reject(err)
-  //     })
-  //   })
-  // }
-
-  this.pullExtruderTest = () => {
-    return new Promise((resolve, reject) => {
-      let res = {
-        temp: undefined, 
-        speed: undefined,
-        load: undefined
-      }
-      let resolved = false 
-      let checkRes = () => {
-        if(resolved) return 
-        if(res.temp != undefined && res.speed != undefined && res.load != undefined){
-          resolved = true 
-          resolve(res)
-        }
-      }
-      this.tvm[0].getExtruderTemp().then((temp) => {
-        res.temp = temp 
-        checkRes()
-      }).catch((err) => { reject(err) })
-      this.getSpeeds().then((speeds) => {
-        res.speed = speeds.E
-        checkRes()
-      }).catch((err) => { reject(err) })
-      this.loadcell.getReading().then((newtons) => {
-        res.load = newtons
-        checkRes()
-      }).catch((err) => { reject(err) })
-    })
   }
   */
 } // end clank vm 
