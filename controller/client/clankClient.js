@@ -336,12 +336,12 @@ servoTestBtn.onClick(() => {
 // -------------------------------------------------------- HEATBED
 
 let bedVm = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(10).end())
-let bedPanel = new TempPanel(bedVm, 210, 10, 70, "bed")
+let bedPanel = new TempPanel(bedVm, 540, 10, 70, "bed", false)
 
 // -------------------------------------------------------- HOTEND 
 
 let hotendVm = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(11).end())
-let hotendPanel = new TempPanel(hotendVm, 210, 410, 220, "hotend")
+let hotendPanel = new TempPanel(hotendVm, 540, 250, 220, "hotend")
 
 // -------------------------------------------------------- EXTRUDER 
 
@@ -381,7 +381,19 @@ printSetupBtn.onClick(async () => {
   printSetupBtn.green('print systems ok')
 })
 
-// printer setup / init 
+// -------------------------------------------------------- GCode Input
+
+let gCodePanel = new GCodePanel(220, 10, 300, vm)
+// to load on restart...
+gCodePanel.loadServerFile('save/3dp-10mmbox.gcode').then(() => {
+  console.log("gcode initial file load OK")
+}).catch((err) => {
+  console.error("failed to load default gcode from server")
+})
+// 'save/pcbmill-stepper.gcode' 114kb
+// 'save/3dp-zdrive-left.gcode' 15940kb (too big for current setup)
+// 'save/clank-lz-bed-face.gcode'
+// 'save/3dp-10mmbox.gcode'
 
 /*
 let gotoStartBtn = new Button(250, 160, 84, 14, 'goto home')
@@ -402,11 +414,6 @@ gotoStartBtn.onClick(() => {
 })
 
 */
-
-// -------------------------------------------------------- GCODE INPUT 
-
-// panel, 
-// let gCodePanel = new GCodePanel(vm, 10, 10)
 
 // -------------------------------------------------------- Filament Data Gen 
 

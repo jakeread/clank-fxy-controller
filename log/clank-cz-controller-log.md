@@ -34,6 +34,20 @@ wherein `cz` should be renamed `fxy` and I reuse this code for *lots of things*
 - CL & OL motors should work together, shouldn't all have to be the same 
 - do Z first, avoid this knock 
 
+## 2021 07 06 
+
+Heater UIs are back up, so I should mess with the gcode panel. 
+
+It's not unlikely that I'll use this pretty extensively as a module... at least for the time being, GCode will remain a pretty good transfer type - lots of inertia there. This will be true of clay printing, milling routines etc - for a long while. Indeed even a good way to work between things like grasshopper and the like, just piping gcoded commands. 
+
+Thing is there's still a lot of state; especially when we think of doing things like milling tools vs. hotend tools etc... I guess a 'good' UI would have collapsible elements for each of these things, etc. Maybe worth a week (?) to just focus on UI codes, find a package that works well - allows me to pop things in & out of existence, move stuff around (absolute positioning) etc. And allow UI to reflect machine state - I guess that'd be the full reach of an eventual osap-tool. 
+
+Whatever, for now I'll just try to make the this print something. 
+
+The gcode panel does need some work. I guess now I'm focused on working towards UIs that are capable enough to be used in class and at haystack. 
+
+OK - it's coming, a lot better already, need to tie up with virtual machine APIs, then I think I'm ready to run some codes... and I have an external-load interface for the panel, so automation should be cleaner as well. 
+
 ## 2021 07 05
 
 Working through:
