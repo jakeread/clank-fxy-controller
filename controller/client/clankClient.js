@@ -116,7 +116,7 @@ let initBtn = new Button(10, 10, 84, 104, 'setup')
 initBtn.red()
 initBtn.onClick(async () => {
   // setup motion basics: accel, max rates (defined in virtual machine)
-  initBtn.yellow('setting up motion settings')
+  initBtn.yellow('awaiting motion end to setup motion settings...')
   try {
     await vm.motion.setup()
   } catch (err) {
@@ -199,6 +199,7 @@ let runHomeRoutine = async () => {
   } catch (err) {
     console.error(err)
     homeBtn.red('motion end err, see console')
+    return 
   }
   homeBtn.yellow('homing Z ...')
   try {
@@ -206,6 +207,7 @@ let runHomeRoutine = async () => {
   } catch (err) {
     console.error(err)
     homeBtn.red('Z homing err, see console')
+    return 
   }
   homeBtn.yellow('homing XY ...')
   try {
@@ -213,10 +215,25 @@ let runHomeRoutine = async () => {
   } catch (err) {
     console.error(err)
     homeBtn.red('XY homing err, see console')
+    return 
+  }
+  homeBtn.yellow('setting home position...')
+  try {
+    await vm.motion.setPos({
+      X: 214,
+      Y: 162,
+      Z: 111
+    })
+  } catch (err) {
+    console.error(err)
+    homeBtn.red('set position err, see console')
+    return 
   }
   homeBtn.green('home: ok')
 }
 homeBtn.onClick(runHomeRoutine)
+
+// 214, 162, 111
 
 // ---------------------------------------------- position loop toggle 
 
@@ -363,6 +380,7 @@ printSetupBtn.onClick(async () => {
   } catch (err) { 
     console.error(err)
     printSetupBtn.red('e motor setup err, see console')
+    return 
   }
   printSetupBtn.yellow('setting up heatbed')
   try {
@@ -370,6 +388,7 @@ printSetupBtn.onClick(async () => {
   } catch (err) {
     console.error(err)
     printSetupBtn.read('heatbed setup err, see console')
+    return 
   }
   printSetupBtn.yellow('setting up hotend')
   try {
@@ -377,6 +396,7 @@ printSetupBtn.onClick(async () => {
   } catch (err) {
     console.error(err)
     printSetupBtn.read('hotend setup err, see console')
+    return 
   }
   printSetupBtn.green('print systems ok')
 })

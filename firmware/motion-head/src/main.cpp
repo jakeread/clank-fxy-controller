@@ -29,7 +29,7 @@ boolean smoothie_is_moving(void){
 
 // -------------------------------------------------------- MOVE QUEUE ENDPOINT 
 
-boolean onMoveData(uint8_t* data, uint16_t len){
+EP_ONDATA_RESPONSES onMoveData(uint8_t* data, uint16_t len){
   // can we load it?
   if(!conveyor->is_queue_full()){
     // read from head, 
@@ -45,17 +45,17 @@ boolean onMoveData(uint8_t* data, uint16_t len){
     // check and load, 
     if(feedrateChunk.f < 0.01){
       sysError("ZERO FR");
-      return true; // ignore this & ack 
+      return EP_ONDATA_ACCEPT; // ignore this & ack 
     } else {
       // do load 
       float target[3] = {targetChunks[0].f, targetChunks[1].f, targetChunks[2].f };
       //sysError("targets, rate: " + String(target[0], 6) + ", " + String(target[1], 6) + ", " + String(target[2], 6) + ", " + String(feedrateChunk.f, 6));
       planner->append_move(target, SR_NUM_MOTORS, feedrateChunk.f, targetChunks[3].f); // mm/min -> mm/sec 
-      return true; 
+      return EP_ONDATA_ACCEPT; 
     }
   } else {
     // await, try again next loop 
-    return false;
+    return EP_ONDATA_WAIT;
   }
 }
 
@@ -63,15 +63,15 @@ vertex_t* moveQueueEp = osapBuildEndpoint("moveQueue", onMoveData, nullptr);  //
 
 // -------------------------------------------------------- POSITION ENDPOINT 
 
-boolean onPositionSet(uint8_t* data, uint16_t len);
+EP_ONDATA_RESPONSES onPositionSet(uint8_t* data, uint16_t len);
 boolean beforePositionQuery(void);
 
 vertex_t* positionEp = osapBuildEndpoint("position", onPositionSet, beforePositionQuery); // 3
 
-boolean onPositionSet(uint8_t* data, uint16_t len){
+EP_ONDATA_RESPONSES onPositionSet(uint8_t* data, uint16_t len){
   // only if it's not moving, 
   if(smoothie_is_moving()){
-    return false;
+    return EP_ONDATA_REJECT;
   } else {
     uint16_t ptr = 0;
     chunk_float32 targetChunks[4];
@@ -83,7 +83,7 @@ boolean onPositionSet(uint8_t* data, uint16_t len){
     float set[4] = { targetChunks[0].f, targetChunks[1].f, targetChunks[2].f, targetChunks[3].f };
     // ...
     planner->set_position(set, 4);
-    return true;
+    return EP_ONDATA_ACCEPT;
   }
 }
 
@@ -140,7 +140,7 @@ boolean beforeMotionStateQuery(void){
 
 // -------------------------------------------------------- WAIT TIME EP 
 
-boolean onWaitTimeData(uint8_t* data, uint16_t len){
+EP_ONDATA_RESPONSES onWaitTimeData(uint8_t* data, uint16_t len){
   // writes (in ms) how long to wait the queue before new moves are executed 
   // i.e. stack flow hysteresis 
   uint32_t ms;
@@ -148,14 +148,14 @@ boolean onWaitTimeData(uint8_t* data, uint16_t len){
   ts_readUint32(&ms, data, &ptr);
   conveyor->setWaitTime(ms);
   //sysError("set wait " + String(ms));
-  return true;
+  return EP_ONDATA_ACCEPT;
 }
 
 vertex_t* waitTimeEp = osapBuildEndpoint("waitTime", onWaitTimeData, nullptr);  // 5 
 
 // -------------------------------------------------------- ACCEL SETTTINGS 
 
-boolean onAccelSettingsData(uint8_t* data, uint16_t len){
+EP_ONDATA_RESPONSES onAccelSettingsData(uint8_t* data, uint16_t len){
   // should be 4 floats: new accel values per-axis 
   uint16_t ptr = 0;
   chunk_float32 targetChunks[4];
@@ -168,14 +168,14 @@ boolean onAccelSettingsData(uint8_t* data, uint16_t len){
     smoothieRoll->actuators[m]->set_accel(targetChunks[m].f);
   }
   // assuming that went well, 
-  return true;
+  return EP_ONDATA_ACCEPT;
 }
 
 vertex_t* accelSettingsEp = osapBuildEndpoint("accelSettings", onAccelSettingsData, nullptr);
 
 // -------------------------------------------------------- RATES SETTINGS 
 
-boolean onRateSettingsData(uint8_t* data, uint16_t len){
+EP_ONDATA_RESPONSES onRateSettingsData(uint8_t* data, uint16_t len){
   // should be 4 floats: new accel values per-axis 
   uint16_t ptr = 0;
   chunk_float32 targetChunks[4];
@@ -188,7 +188,7 @@ boolean onRateSettingsData(uint8_t* data, uint16_t len){
     smoothieRoll->actuators[m]->set_max_rate(targetChunks[m].f);
   }
   // assuming that went well, 
-  return true;
+  return EP_ONDATA_ACCEPT;
 }
 
 vertex_t* rateSettingsEp = osapBuildEndpoint("rateSettings", onRateSettingsData, nullptr);

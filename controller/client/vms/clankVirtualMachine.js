@@ -37,14 +37,14 @@ export default function ClankVM(osap) {
   // .settings() for rates and accels, 
   this.motion.settings({
     accel: {  // mm/sec^2 
-      X: 3000,
-      Y: 3000,
+      X: 2000,
+      Y: 2000,
       Z: 500,
       E: 500
     },
     maxRate: {
-      X: 200,
-      Y: 200,
+      X: 150,
+      Y: 150,
       Z: 100,
       E: 100
     }

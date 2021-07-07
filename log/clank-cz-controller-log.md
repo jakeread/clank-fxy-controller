@@ -34,6 +34,104 @@ wherein `cz` should be renamed `fxy` and I reuse this code for *lots of things*
 - CL & OL motors should work together, shouldn't all have to be the same 
 - do Z first, avoid this knock 
 
+## 2021 07 07 
+
+I have myself a timeout when consuming moves now - in embedded. I wonder why this was working before (?) or how? That'll be a real development mystery - have I never run this thing w/ the current OSAP? What have I been doing? No - surely, because I had the whole filament experiment thing working etc... and I tested print codes. The print was in 2021-01-24, this *was* actually well before the new its-all-vertices codes. 
+
+So: how to wait a long time for things that are ostensibly being transmitted 'in' to endpoints? 
+
+Here's the relevant chunk of osap code;
+
+```cpp
+        case VT_TYPE_ENDPOINT:
+          if(endpointHandler(vt, od, item, ptr)){
+            stackClearSlot(vt, od, item);
+          } else {
+            // ok, will wait, but not try again for this stack: 
+            _attemptedInstructions[_numAttemptedInstructions] = PK_DEST;
+            _numAttemptedInstructions ++;
+          }
+```
+
+This is a packet like `src, ..., ptr, dest, data` and is (in the case here) a "direct message" to the endpoint itself - this is the add-move-to-queue endpoint in the controller head.
+
+So what goes on then in the controller is that we have a full queue - motion is happening - so this handler returns false for a while:
+
+```cpp
+boolean onMoveData(uint8_t* data, uint16_t len){
+  // can we load it?
+  if(!conveyor->is_queue_full()){
+    // read from head, 
+    uint16_t ptr = 0;
+    // feedrate is 1st, 
+    chunk_float32 feedrateChunk = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+    // get positions XYZE
+    chunk_float32 targetChunks[4];
+    targetChunks[0] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+    targetChunks[1] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+    targetChunks[2] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+    targetChunks[3] = { .bytes = { data[ptr ++], data[ptr ++], data[ptr ++], data[ptr ++] } };
+    // check and load, 
+    if(feedrateChunk.f < 0.01){
+      sysError("ZERO FR");
+      return true; // ignore this & ack 
+    } else {
+      // do load 
+      float target[3] = {targetChunks[0].f, targetChunks[1].f, targetChunks[2].f };
+      //sysError("targets, rate: " + String(target[0], 6) + ", " + String(target[1], 6) + ", " + String(target[2], 6) + ", " + String(feedrateChunk.f, 6));
+      planner->append_move(target, SR_NUM_MOTORS, feedrateChunk.f, targetChunks[3].f); // mm/min -> mm/sec 
+      return true; 
+    }
+  } else {
+    // await, try again next loop 
+    return false;
+  }
+}
+```
+
+Each time that thing returns false, the thing returns on the next loop, but then eventually gets kicked here:
+
+```cpp
+if(item->arrivalTime + TIMES_STALE_MSG < now){
+  sysError("T/O indice " + String(vt->indice) + " " + String(item->indice) + " " + String(item->data[ptr + 1]) + " " + String(item->arrivalTime));
+  stackClearSlot(vt, od, item);
+  continue;
+}
+```
+
+The basic timeout - that applies to every vertex, to avoid mid-system hangups / blockages. 
+
+This trouble here is related to a kind of generalized endpoint-api clarity issue: an endpoint right now replies one of two things:
+
+```cpp
+true // meaning: this data is good and I have consumed it
+false // meaning: I am not ready for this data 
+```
+
+Really, there are some more states here:
+
+```cpp
+#define EP_CONSUME_REJECT 0   // I hereby reject this data (forever) 
+                              // on rejection, data vanishes from the system
+#define EP_CONSUME_ACCEPT 1   // the data is good and I have consumed it 
+                              // on acceptance, data is memcpied into the ep
+#define EP_CONSUME_WAIT 2     // I can't look at this yet, pls hang 10 with it
+                              // for a wait, the msgs 'arrival time' should be updated for the current loop, so that it doesn't get popped 
+```
+
+I *think* these are the three that I would want - at least I know there are more than 2, so I need the return type to be one of those enums. 
+
+This will clarify some endpoint stuff I've been anyways miffed about - so that's today's update... then back into codeland for the gcode consumer. I should, should print something today. 
+
+Cool - have done that, now we can 'wait' a message at the endpoint, that was always missing. Amazing I got this far without needing it... definitely want better unit tests for the system, right? 
+
+I suppose I should run a test print to feel like the controller is 'finished' - can add bells & whistles at haystack. 
+
+- init / home: home includes resetting motion position 
+- goto 0,0,0: xy first, then z... calibrate top right position so this hits 
+- then run some gcode... 
+- then load some filament ? 
+
 ## 2021 07 06 
 
 Heater UIs are back up, so I should mess with the gcode panel. 
