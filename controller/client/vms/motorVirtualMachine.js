@@ -47,9 +47,23 @@ export default function MotorVM(osap, route) {
     })
   }
 
-  // -------------------------------------------- 4: steps per unit 
+  // -------------------------------------------- 4: microstep 
+  let microstepEP = osap.endpoint()
+  microstepEP.addRoute(PK.route(route).sib(4).end())
+  this.setMicrostep = (micro) => {
+    let datagram = new Uint8Array(1)
+    datagram[0] = micro 
+    console.log(datagram[0])
+    return new Promise((resolve, reject) => {
+      microstepEP.write(datagram, "acked").then(() => {
+        resolve()
+      }).catch((err) => { reject(err) })
+    })
+  }
+
+  // -------------------------------------------- 5: steps per unit 
   let spuEP = osap.endpoint()
-  spuEP.addRoute(PK.route(route).sib(4).end())
+  spuEP.addRoute(PK.route(route).sib(5).end())
   this.setSPU = (spu) => {
     let datagram = new Uint8Array(4)
     TS.write('float32', spu, datagram, 0, true)
@@ -60,9 +74,9 @@ export default function MotorVM(osap, route) {
     })
   }
 
-  // -------------------------------------------- 5: active current scaling 
+  // -------------------------------------------- 6: active current scaling 
   let cscaleEP = osap.endpoint()
-  cscaleEP.addRoute(PK.route(route).sib(5).end())
+  cscaleEP.addRoute(PK.route(route).sib(6).end())
   this.setCScale = (cscale) => {
     let datagram = new Uint8Array(4)
     TS.write('float32', cscale, datagram, 0, true)
@@ -73,9 +87,9 @@ export default function MotorVM(osap, route) {
     })
   }
 
-  // -------------------------------------------- 6: homing 
+  // -------------------------------------------- 7: homing 
   let homeEP = osap.endpoint()
-  homeEP.addRoute(PK.route(route).sib(6).end())
+  homeEP.addRoute(PK.route(route).sib(7).end())
   this.home = () => {
     let rate = config.homeRate
     let offset = config.homeOffset
@@ -89,8 +103,8 @@ export default function MotorVM(osap, route) {
     })
   }
 
-  // -------------------------------------------- 7: homing state 
-  let homeStateQuery = osap.query(PK.route(route).sib(7).end())
+  // -------------------------------------------- 8: homing state 
+  let homeStateQuery = osap.query(PK.route(route).sib(8).end())
   this.getHomeState = () => {
     return new Promise((resolve, reject) => {
       homeStateQuery.pull().then((data) => {
@@ -125,6 +139,7 @@ export default function MotorVM(osap, route) {
     axisPick: 0, 
     axisInversion: false, 
     SPU: 320,
+    microstep: 16, // 1, 4, 8, 16, 32, 64 
     currentScale: 0.2,
     homeRate: 10,
     homeOffset: 10
@@ -134,6 +149,21 @@ export default function MotorVM(osap, route) {
   this.settings = (settings, publish) => {
     // could do: on each setup change, if flag 'publish' set, do network work here 
     // would mean this becomes async... 
+    // also, check microstep is allowed 
+    if(settings.microstep){
+      switch(settings.microstep){
+        case 1:
+        case 4:
+        case 8:
+        case 16:
+        case 32:
+        case 64:
+          break;
+        default:
+          throw new Error("microstep motor setting must be 1 or power of 2, max 64")
+          break;
+      }
+    }
     for(let key in settings){
       if(key in config){
         config[key] = settings[key]
@@ -148,6 +178,7 @@ export default function MotorVM(osap, route) {
     try {
       await this.setAxisPick(config.axisPick)
       await this.setAxisInversion(config.axisInversion)
+      await this.setMicrostep(config.microstep)
       await this.setSPU(config.SPU)
       await this.setCScale(0.0) // default: off 
     } catch (err) { throw err }

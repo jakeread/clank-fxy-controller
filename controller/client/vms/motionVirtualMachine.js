@@ -13,6 +13,7 @@ no warranty is provided, and users accept all liability.
 */
 
 import { PK, TS, VT, EP, TIMES } from '../../osapjs/core/ts.js'
+import { delay } from '../../osapjs/core/time.js'
 
 export default function MotionVM(osap, route){
     // ok: we make an 'endpoint' that will transmit moves,
@@ -23,7 +24,6 @@ export default function MotionVM(osap, route){
   moveEP.setTimeoutLength(60000)
   // move like: { position: {X: num, Y: num, Z: num}, rate: num }
   this.addMoveToQueue = (move) => {
-    console.log("add move", move.position.X)
     // write the gram, 
     let wptr = 0
     let datagram = new Uint8Array(20)
@@ -149,6 +149,26 @@ export default function MotionVM(osap, route){
         resolve()
       }).catch((err) => { reject(err) })
     })
+  }
+
+  this.delta = async (move, rate) => {
+    try {
+      if (!rate) rate = 6000
+      await this.setWaitTime(1)
+      await delay(5)
+      await this.awaitMotionEnd()
+      let cp = await this.getPos()
+      await this.addMoveToQueue({
+        position: { X: cp.X + move[0], Y: cp.Y + move[1], Z: cp.Z + move[2] },
+        rate: rate
+      })
+      await delay(5)
+      await this.awaitMotionEnd()
+      await this.setWaitTime(100)
+    } catch (err) {
+      console.error('arising during delta')
+      throw err
+    }
   }
 
   // endpoint to set per-axis accelerations,

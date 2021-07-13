@@ -37,15 +37,15 @@ export default function ClankVM(osap) {
   // .settings() for rates and accels, 
   this.motion.settings({
     accel: {  // mm/sec^2 
-      X: 2000,
-      Y: 2000,
-      Z: 500,
+      X: 1500,
+      Y: 1500,
+      Z: 300,
       E: 500
     },
     maxRate: {
-      X: 150,
-      Y: 150,
-      Z: 100,
+      X: 100,
+      Y: 100,
+      Z: 50,
       E: 100
     }
   })
@@ -61,6 +61,8 @@ export default function ClankVM(osap) {
   // ZLR:   x                 5 0b101
   // ZRF:   x                 6 0b110
   // ZRR:   x                 7 0b111
+  // E: Claystack:            
+  //        x       x         8
   // E: included here (?) shouldn't be 
   // E:     550     true 
   // per bondtech, for BMG on 16 microsteps, do 415: we are 32 microsteps 
@@ -75,13 +77,15 @@ export default function ClankVM(osap) {
     ZLR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(5).end()),
     ZRF: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(6).end()),
     ZRR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(7).end()),
+    E: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(9).end())
   }
 
   // .settings() just preps for the .init() or whatever other call, 
   this.motors.X.settings({
     axisPick: 0,
     axisInversion: false,
-    SPU: 320,
+    microstep: 16,
+    SPU: 80,
     currentScale: 0.4,
     homeRate: 20, // units / sec
     homeOffset: 5, // units 
@@ -90,7 +94,8 @@ export default function ClankVM(osap) {
   this.motors.YL.settings({
     axisPick: 1,
     axisInversion: true,
-    SPU: 320,
+    microstep: 16,
+    SPU: 80,
     currentScale: 0.4,
     homeRate: 20,
     homeOffset: 5,
@@ -99,18 +104,21 @@ export default function ClankVM(osap) {
   this.motors.YR.settings({
     axisPick: 1,
     axisInversion: false,
-    SPU: 320,
+    microstep: 16,
+    SPU: 80,
     currentScale: 0.4,
     homeRate: 20,
     homeOffset: 5
   })
 
-  let zMotorSPU = 914.2857143
+  let zMotorMicrostep = 16
+  let zMotorSPU = 228.571428575
   let zMotorCurrent = 0.5
 
   this.motors.ZLF.settings({
     axisPick: 2,
     axisInversion: false,
+    microstep: zMotorMicrostep,
     SPU: zMotorSPU,
     currentScale: zMotorCurrent,
     homeRate: 10,
@@ -120,6 +128,7 @@ export default function ClankVM(osap) {
   this.motors.ZLR.settings({
     axisPick: 2,
     axisInversion: false,
+    microstep: zMotorMicrostep,
     SPU: zMotorSPU,
     currentScale: zMotorCurrent,
     homeRate: 10,
@@ -129,6 +138,7 @@ export default function ClankVM(osap) {
   this.motors.ZRF.settings({
     axisPick: 2,
     axisInversion: false,
+    microstep: zMotorMicrostep,
     SPU: zMotorSPU,
     currentScale: zMotorCurrent,
     homeRate: 10,
@@ -138,10 +148,19 @@ export default function ClankVM(osap) {
   this.motors.ZRR.settings({
     axisPick: 2,
     axisInversion: false,
+    microstep: zMotorMicrostep,
     SPU: zMotorSPU,
     currentScale: zMotorCurrent,
     homeRate: 10,
     homeOffset: 5
+  })
+
+  this.motors.E.settings({
+    axisPick: 3,
+    axisInversion: true, 
+    microstep: 4,
+    SPU: 1200,
+    currentScale: 0.5,
   })
 
   // ------------------------------------------------------ setup / handle motor group
@@ -260,27 +279,6 @@ export default function ClankVM(osap) {
   // from back left 0,0 
   // put-down HE at (23.8, -177) -> (23.8, -222.6) -> release -> (-17.8, -208.6) clear -> (-17.8, -183)
   // { position: {X: num, Y: num, Z: num}, rate: num }
-
-  this.delta = async (move, rate) => {
-    try {
-      if (!rate) rate = 6000
-      await this.setWaitTime(1)
-      await delay(5)
-      await this.awaitMotionEnd()
-      let cp = await this.getPos()
-      console.log('current', cp)
-      await this.addMoveToQueue({
-        position: { X: cp.X + move[0], Y: cp.Y + move[1], Z: cp.Z + move[2] },
-        rate: rate
-      })
-      await delay(5)
-      await this.awaitMotionEnd()
-      await this.setWaitTime(100)
-    } catch (err) {
-      console.error('arising during delta')
-      throw err
-    }
-  }
 
   this.goto = async (pos, rate) => {
     try {
