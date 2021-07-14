@@ -156,9 +156,9 @@ template <class kind> unsigned int HeapRing<kind>::space(void){
     } else if (head_i == tail_i){
         return length;
     } else if (head_i > tail_i){
-        return (length - head_i + tail_i);
+        return (length - (head_i - tail_i));
     } else if (tail_i > head_i){
-        return (length - tail_i + head_i);
+        return (tail_i - head_i);
     } else {
         return 0; // ?? shouldn't 
     }

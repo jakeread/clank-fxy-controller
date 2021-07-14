@@ -120,7 +120,19 @@ void Conveyor::on_idle(void*)
         } else {
             // Cleanly delete block
             Block* block = queue.tail_ref();
-            //sysError("block: steps-X: " + String(block->steps[0]));
+            // if not-super-full, light on: buffer close to starving 
+            (queue.space() > 32) ? DEBUG2PIN_ON : DEBUG2PIN_OFF;
+            /*
+            sysError(String(block->millimeters) + " " 
+                + String(block->entry_speed) + " " 
+                + String(block->exit_speed) + " " 
+                + String(block->maximum_rate) + " "
+                + String(block->nominal_rate) + " "
+                + String(block->acceleration) + " "
+                //+ String(queue.head_i) + " "
+                //+ String(queue.tail_i) + " "
+                + String(queue.space()));
+            */
             //block->debug();
             block->clear();
             queue.consume_tail();

@@ -53,7 +53,7 @@ export default function MotorVM(osap, route) {
   this.setMicrostep = (micro) => {
     let datagram = new Uint8Array(1)
     datagram[0] = micro 
-    console.log(datagram[0])
+    //console.log(datagram[0])
     return new Promise((resolve, reject) => {
       microstepEP.write(datagram, "acked").then(() => {
         resolve()

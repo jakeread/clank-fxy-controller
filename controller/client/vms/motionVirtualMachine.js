@@ -35,7 +35,8 @@ export default function MotionVM(osap, route){
     wptr += TS.write('float32', move.position.Z, datagram, wptr, true)
     if (move.position.E) {
       //console.log(move.position.E)
-      wptr += TS.write('float32', move.position.E, datagram, wptr, true)
+      wptr += TS.write('float32', 0, datagram, wptr, true)
+      //  wptr += TS.write('float32', move.position.E, datagram, wptr, true)
     } else {
       wptr += TS.write('float32', 0, datagram, wptr, true)
     }

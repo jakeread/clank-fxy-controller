@@ -156,7 +156,7 @@ initBtn.onClick(async () => {
   //   return
   // }
   // start position loop (?) 
-  posDisplayKick()
+  //posDisplayKick()
   initBtn.green('setup ok')
 })
 
@@ -282,61 +282,9 @@ posDisplay.onClick(posDisplayKick)
 
 let jogBox = new JogBox(10, 270, vm, 200)
 
-// -------------------------------------------------------- LOADCELL VM 
-
-let loadcellVm = new LoadVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(9).end())
-//let loadPanel = new LoadPanel(loadcellVm, 350, 830, "HE loadcell")
-// 0: rear
-// 1: front left
-// 2: front right
-let calibReadings = [
-  [[-62200, -52160, -42090, -11900, 38360],
-  [0, -100, -200, -500, -1000]],
-  [[45650, 57850, 68120, 101780, 158100],
-  [0, -100, -200, -500, -1000]],
-  [[-28050, -39050, -50050, -83000, -131200],
-  [0, -100, -200, -500, -1000]]
-]
-loadcellVm.setObservations('grams', calibReadings)
-
-let loadTestBtn = new Button(110, 10, 84, 44, 'loadcells', true)
-loadTestBtn.onClick(() => {
-  if(loadRunning){
-    loadRunning = false     
-  } else {
-    loadRunning = true 
-    runLoad()
-  }
-})
-let filts = [0, 0, 0]
-let alpha = 0.5
-let loadRunning = false
-let runLoad = async () => {
-  if (loadRunning) {
-    try {
-      let rds = await loadcellVm.getReading()
-      for (let i = 0; i < 3; i++) {
-        filts[i] = filts[i] * (1 - alpha) + rds[i] * alpha
-      }
-      loadTestBtn.setHTML(`
-    0: ${filts[0].toFixed(2)}<br>
-    1: ${filts[1].toFixed(2)}<br>
-    2: ${filts[2].toFixed(2)}
-    `)
-      loadTestBtn.green()
-      setTimeout(runLoad, 10)
-    } catch (err) {
-      console.log(err)
-      loadTestBtn.red('err')
-    }
-  } else {
-    loadTestBtn.grey()
-  }
-}
-
 // -------------------------------------------------------- SERVO / TC
 
-let servoTestBtn = new EZButton(110, 70, 84, 14, 'toolchanger')
+let servoTestBtn = new EZButton(10, 500, 84, 14, 'toolchanger')
 let servoState = 'closed'
 servoTestBtn.onClick(() => {
   if (servoState == 'closed') {
@@ -358,66 +306,42 @@ servoTestBtn.onClick(() => {
   }
 })
 
-// -------------------------------------------------------- HEATBED
+// -------------------------------------------------------- E Disable 
 
-let bedVm = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(10).end())
-let bedPanel = new TempPanel(bedVm, 540, 10, 70, "bed", false)
-
-// -------------------------------------------------------- HOTEND 
-
-let hotendVm = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(11).end())
-let hotendPanel = new TempPanel(hotendVm, 540, 250, 220, "hotend")
-
-// -------------------------------------------------------- EXTRUDER 
-
-let extruderMotor = new MotorVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(12).end())
-extruderMotor.settings({
-  axisPick: 3,
-  axisInversion: true,
-  SPU: 550,
-  currentScale: 0.4
-})
-
-// -------------------------------------------------------- Print Systems Setup 
-
-let printSetupBtn = new Button(110, 100, 84, 34, 'setup print systems')
-printSetupBtn.onClick(async () => {
-  printSetupBtn.yellow('setting up extruder motor')
-  try {
-    await extruderMotor.setup()
-  } catch (err) { 
-    console.error(err)
-    printSetupBtn.red('e motor setup err, see console')
-    return 
+let eDisableBtn = new EZButton(10, 530, 84, 14, 'switch E pwr')
+let eState = 'enabled'
+eDisableBtn.onClick(() => {
+  if(eState == 'disabled'){
+    vm.motors.E.enable().then(() => {
+      eDisableBtn.good('enabed', 750)
+      eState = 'enabled'
+    }).catch((err) => {
+      console.error(err)
+      eDisableBtn.bad('err')
+    })
+  } else {
+    vm.motors.E.disable().then(() => {
+      eDisableBtn.good('disabled', 750)
+      eState = 'disabled'
+    }).catch((err) => {
+      console.error(err)
+      eDisableBtn.bad('err')
+    })
   }
-  printSetupBtn.yellow('setting up heatbed')
-  try {
-    await bedVm.setPIDTerms([-1.0, 0.0, -2.6])
-  } catch (err) {
-    console.error(err)
-    printSetupBtn.read('heatbed setup err, see console')
-    return 
-  }
-  printSetupBtn.yellow('setting up hotend')
-  try {
-    await hotendVm.setPIDTerms([-1.0, 0.0, -2.6])
-  } catch (err) {
-    console.error(err)
-    printSetupBtn.read('hotend setup err, see console')
-    return 
-  }
-  printSetupBtn.green('print systems ok')
 })
 
 // -------------------------------------------------------- GCode Input
 
-let gCodePanel = new GCodePanel(220, 10, 300, vm)
+let gCodePanel = new GCodePanel(120, 10, 300, vm)
 // to load on restart...
-gCodePanel.loadServerFile('save/3dp-10mmbox.gcode').then(() => {
+gCodePanel.loadServerFile('save/daikon-slowly.gcode').then(() => {
   console.log("gcode initial file load OK")
 }).catch((err) => {
   console.error("failed to load default gcode from server")
 })
+// 'save/daikon-01.gcode'
+// 'save/daikon-truncate.gcode'
+// 'save/daikon-noz-step.gcode'
 // 'save/pcbmill-stepper.gcode' 114kb
 // 'save/3dp-zdrive-left.gcode' 15940kb (too big for current setup)
 // 'save/clank-lz-bed-face.gcode'
@@ -442,11 +366,3 @@ gotoStartBtn.onClick(() => {
 })
 
 */
-
-// -------------------------------------------------------- Filament Data Gen 
-
-// let dataGen = new FilamentExperiment(vm, hotendVm, loadcellVm, 350, 10)
-
-// -------------------------------------------------------- Stiffness Map Data Gen
-
-//let stiffnessMapper = new StiffnessMapper(vm, loadcellVm, 350, 10)

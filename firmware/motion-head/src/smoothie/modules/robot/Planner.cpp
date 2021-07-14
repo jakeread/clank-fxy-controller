@@ -53,10 +53,11 @@ Planner::Planner()
 
 // Configure acceleration
 void Planner::config_load()
-{   
+{
     #warning replaced with defaults 
-    this->junction_deviation = 0.01F; //THEKERNEL->config->value(junction_deviation_checksum)->by_default(0.05F)->as_number();
-    this->z_junction_deviation = 0.01F; //THEKERNEL->config->value(z_junction_deviation_checksum)->by_default(NAN)->as_number(); // disabled by default
+    // fair warning: badness observed w/ JD below 0.05F 
+    this->junction_deviation = 0.05F; //THEKERNEL->config->value(junction_deviation_checksum)->by_default(0.05F)->as_number();
+    this->z_junction_deviation = 0.05; //0.15F; //THEKERNEL->config->value(z_junction_deviation_checksum)->by_default(NAN)->as_number(); // disabled by default
     this->minimum_planner_speed = 0.00F; //THEKERNEL->config->value(minimum_planner_speed_checksum)->by_default(0.0f)->as_number();
 }
 
@@ -88,6 +89,7 @@ void Planner::append_move( float* target, uint8_t n_motors, float rate, float de
         sos += powf(deltas[m], 2);
     }
     // do delta for E, 
+    deltas[3] = delta_e;
     last_position[3] += delta_e;
     feedPos[3] = last_position[3];
     // the rest is different if we have an e-only move or not, 
@@ -99,6 +101,7 @@ void Planner::append_move( float* target, uint8_t n_motors, float rate, float de
         e_only = true;
         dist = fabsf(delta_e);
         sysError("e-only " + String(dist));
+        return;
     } else {
         // move has real travel, 
         e_only = false;
@@ -109,10 +112,10 @@ void Planner::append_move( float* target, uint8_t n_motors, float rate, float de
     }
     // zero rates are rejected 
     if(rate < 0.0001F){
-        sysError("rejecting small rate");
+        //sysError("rejecting small rate");
         return;
     } else if (dist < 0.00001F){
-        sysError("rejecting small distance " + String(dist));
+        //sysError("rejecting small distance " + String(dist));
         return;
     }
     // now pick an acceleration based on per-axis limits 
@@ -126,6 +129,12 @@ void Planner::append_move( float* target, uint8_t n_motors, float rate, float de
 
         float actuator_rate = d * isecs;
         if (actuator_rate > smoothieRoll->actuators[actuator]->get_max_rate()) {
+            sysError("adjusting for max rate, axis " + String(actuator));
+            /*
+            sysError("rc " + String(actuator)
+                    + " max " + String(smoothieRoll->actuators[actuator]->get_max_rate())
+                    + " act rate " + String(actuator_rate));
+            */
             rate *= (smoothieRoll->actuators[actuator]->get_max_rate() / actuator_rate);
             isecs = rate / dist;
         }
@@ -220,9 +229,12 @@ bool Planner::append_block( ActuatorCoordinates &actuator_pos, uint8_t n_motors,
         block->nominal_speed = rate_mm_s;           // (mm/s) Always > 0
         block->nominal_rate = block->steps_event_count * rate_mm_s / distance; // (step/s) Always > 0
     } else {
+        sysError("nominal rate, speed to zero...");
         block->nominal_speed = 0.0F;
         block->nominal_rate  = 0;
     }
+
+    //sysError(String(rate_mm_s) + " " + String(block->nominal_rate));
 
     // Compute the acceleration rate for the trapezoid generator. Depending on the slope of the line
     // average travel per step event changes. For a line along one axis the travel per step event
