@@ -37,16 +37,16 @@ export default function ClankVM(osap) {
   // .settings() for rates and accels, 
   this.motion.settings({
     accel: {  // mm/sec^2 
-      X: 1500,  // 1500
-      Y: 1500,  // 1500
-      Z: 1500,   // 300, 
-      E: 1500    // 500 
+      X: 1000,  // 1500
+      Y: 1000,  // 1500
+      Z: 150,   // 300, 
+      E: 150    // 500 
     },
     maxRate: {
       X: 100,   // 100
       Y: 100,   // 100 
-      Z: 100,    // 50 
-      E: 100    // 100 
+      Z: 50,    // 50 
+      E: 50    // 100 
     }
   })
 
@@ -159,8 +159,8 @@ export default function ClankVM(osap) {
     axisPick: 3,
     axisInversion: true, 
     microstep: 4,
-    SPU: 1200,
-    currentScale: 0.5,
+    SPU: 1200,  // 1200 
+    currentScale: 0.5, // 0.5, 0.2 for nathan plunger
   })
 
   // ------------------------------------------------------ setup / handle motor group

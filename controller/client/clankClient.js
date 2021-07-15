@@ -278,13 +278,25 @@ let posDisplayKick = () => {
 }
 posDisplay.onClick(posDisplayKick)
 
+// -------------------------------------------------------- Z Zero
+
+let zeroSetBtn = new EZButton(10, 280, 84, 14, 'set z zero')
+zeroSetBtn.onClick(() => {
+  vm.motion.setZ(0).then(() => {
+    zeroSetBtn.good("z set", 500)
+  }).catch((err) => {
+    console.log(err)
+    zeroSetBtn.bad("err, see console")
+  })
+})
+
 // -------------------------------------------------------- JOGGING 
 
-let jogBox = new JogBox(10, 270, vm, 200)
+let jogBox = new JogBox(10, 310, vm, 200)
 
 // -------------------------------------------------------- SERVO / TC
 
-let servoTestBtn = new EZButton(10, 500, 84, 14, 'toolchanger')
+let servoTestBtn = new EZButton(10, 550, 84, 14, 'toolchanger')
 let servoState = 'closed'
 servoTestBtn.onClick(() => {
   if (servoState == 'closed') {
@@ -308,7 +320,7 @@ servoTestBtn.onClick(() => {
 
 // -------------------------------------------------------- E Disable 
 
-let eDisableBtn = new EZButton(10, 530, 84, 14, 'switch E pwr')
+let eDisableBtn = new EZButton(10, 580, 84, 14, 'switch E pwr')
 let eState = 'enabled'
 eDisableBtn.onClick(() => {
   if(eState == 'disabled'){

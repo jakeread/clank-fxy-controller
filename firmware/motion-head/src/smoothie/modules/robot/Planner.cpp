@@ -101,7 +101,7 @@ void Planner::append_move( float* target, uint8_t n_motors, float rate, float de
         e_only = true;
         dist = fabsf(delta_e);
         sysError("e-only " + String(dist));
-        return;
+        //return;
     } else {
         // move has real travel, 
         e_only = false;
@@ -229,7 +229,7 @@ bool Planner::append_block( ActuatorCoordinates &actuator_pos, uint8_t n_motors,
         block->nominal_speed = rate_mm_s;           // (mm/s) Always > 0
         block->nominal_rate = block->steps_event_count * rate_mm_s / distance; // (step/s) Always > 0
     } else {
-        sysError("nominal rate, speed to zero...");
+        sysError("now distance, nominal rate and speed to zero...");
         block->nominal_speed = 0.0F;
         block->nominal_rate  = 0;
     }
