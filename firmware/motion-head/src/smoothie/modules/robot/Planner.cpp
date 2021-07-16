@@ -100,7 +100,7 @@ void Planner::append_move( float* target, uint8_t n_motors, float rate, float de
         // e-only move, 
         e_only = true;
         dist = fabsf(delta_e);
-        sysError("e-only " + String(dist));
+        // sysError("e-only " + String(dist));
         //return;
     } else {
         // move has real travel, 
@@ -129,7 +129,7 @@ void Planner::append_move( float* target, uint8_t n_motors, float rate, float de
 
         float actuator_rate = d * isecs;
         if (actuator_rate > smoothieRoll->actuators[actuator]->get_max_rate()) {
-            sysError("adjusting for max rate, axis " + String(actuator));
+            //sysError("adjusting for max rate, axis " + String(actuator));
             /*
             sysError("rc " + String(actuator)
                     + " max " + String(smoothieRoll->actuators[actuator]->get_max_rate())
