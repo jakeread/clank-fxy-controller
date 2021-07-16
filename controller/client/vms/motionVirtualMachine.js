@@ -276,8 +276,8 @@ export default function MotionVM(osap, route){
       let cPos = await this.getPos()
       console.log(cPos)
       cPos.Z = zPos // just update one 
-      cPos.X = 65
-      cPos.Y = 85
+      //cPos.X = 65
+      //cPos.Y = 85
       await this.setPos(cPos)
     } catch (err) {
       throw err

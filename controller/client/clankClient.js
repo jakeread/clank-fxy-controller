@@ -190,7 +190,7 @@ motorEnableBtn.onClick(toggleMotorEnable)
 
 // ---------------------------------------------- home routine setup 
 
-let homeBtn = new Button(10, 170, 84, 24, 'home: ?')
+let homeBtn = new Button(10, 170, 84, 34, 'home: ?')
 homeBtn.red()
 let runHomeRoutine = async () => {
   homeBtn.yellow('awaiting motion end...')
@@ -245,8 +245,8 @@ homeBtn.onClick(runHomeRoutine)
 
 // ---------------------------------------------- position loop toggle 
 
-let posDisplay = new Button(10, 210, 84, 44, `pos: ?`, true)
-posDisplay.red()
+let posDisplay = new Button(10, 220, 84, 44, `pos: ?`, true)
+//posDisplay.red()
 posDisplay.setHTML(`X: ?<br>Y: ?<br>Z: ?`)
 let posDisplayRunning = false
 let runPosUpdate = async () => {
@@ -278,25 +278,37 @@ let posDisplayKick = () => {
 }
 posDisplay.onClick(posDisplayKick)
 
+// -------------------------------------------------------- JOGGING 
+
+let jogBox = new JogBox(10, 300, vm, 200)
+
 // -------------------------------------------------------- Z Zero
 
-let zeroSetBtn = new EZButton(10, 280, 84, 14, 'set z zero')
+let zeroSetBtn = new EZButton(10, 550, 84, 14, 'set z zero')
 zeroSetBtn.onClick(() => {
   vm.motion.setZ(0).then(() => {
-    zeroSetBtn.good("z set", 500)
+    zeroSetBtn.good("z set", 750)
   }).catch((err) => {
-    console.log(err)
+    console.error(err)
     zeroSetBtn.bad("err, see console")
   })
 })
 
-// -------------------------------------------------------- JOGGING 
+// -------------------------------------------------------- Dead Center
 
-let jogBox = new JogBox(10, 310, vm, 200)
+let centerSetBtn = new EZButton(10, 580, 84, 14, 'set center')
+centerSetBtn.onClick(() => {
+  vm.motion.setPos({X:65, Y:85, Z: 0}).then(() => {
+    centerSetBtn.good('center set', 750)
+  }).catch((err) => {
+    console.error(err)
+    centerSetBtn.bad("err, see console")
+  })
+})
 
 // -------------------------------------------------------- SERVO / TC
 
-let servoTestBtn = new EZButton(10, 550, 84, 14, 'toolchanger')
+let servoTestBtn = new EZButton(10, 630, 84, 14, 'toolchanger')
 let servoState = 'closed'
 servoTestBtn.onClick(() => {
   if (servoState == 'closed') {
@@ -320,7 +332,7 @@ servoTestBtn.onClick(() => {
 
 // -------------------------------------------------------- E Disable 
 
-let eDisableBtn = new EZButton(10, 580, 84, 14, 'switch E pwr')
+let eDisableBtn = new EZButton(10, 660, 84, 14, 'switch E pwr')
 let eState = 'enabled'
 eDisableBtn.onClick(() => {
   if(eState == 'disabled'){
