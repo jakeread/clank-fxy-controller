@@ -209,14 +209,6 @@ let runHomeRoutine = async () => {
     homeBtn.red('Z homing err, see console')
     return 
   }
-  homeBtn.yellow('returning to lower plane...')
-  try {
-    await vm.motion.delta([0,0,-250], 50)
-  } catch (err) {
-    console.error(err)
-    homeBtn.red('delta move err, see console')
-    return 
-  }
   homeBtn.yellow('homing XY ...')
   try {
     await vm.homeXY()

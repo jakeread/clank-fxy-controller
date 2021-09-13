@@ -34,6 +34,33 @@ wherein `cz` should be renamed `fxy` and I reuse this code for *lots of things*
 - CL & OL motors should work together, shouldn't all have to be the same 
 - do Z first, avoid this knock 
 
+## 2021 09 13
+
+Just setting one of these up again. 
+
+- bus addresses 
+  - X: 1
+  - YL: 2
+  - YR: 3
+  - ZLF: 4
+  - ZLR: 5
+  - ZRF: 6
+  - ZRR: 7 
+  - now check motion system, homing... 
+  - Tool Plate: 8 (reserve)
+  - Bed Loadcells: 9
+    - needs updated firmware for latest osape 
+  - Bed Heater: 10 
+    - ibid 
+  - test bed heater 
+  - now build hotend 
+
+Ack, I've changed the bus since last... thought I tested motion, maybe haven't updated submodules? Or I have a cable flipped... I am not even getting the clklight blink. Everything is up to date, but I don't see anything on the line... ah: probably the head is misconfigured as one of the old modules. Grandissimo, looks alive now. 
+
+Now limits not hooking up, IDK. Now totally flumoxxed, I guess I was using the limit as a debug probably. Yep, that was all. 
+
+OK back up on motion and homing. Should test the bed heater. 
+
 ## 2021 07 07 
 
 I have myself a timeout when consuming moves now - in embedded. I wonder why this was working before (?) or how? That'll be a real development mystery - have I never run this thing w/ the current OSAP? What have I been doing? No - surely, because I had the whole filament experiment thing working etc... and I tested print codes. The print was in 2021-01-24, this *was* actually well before the new its-all-vertices codes. 

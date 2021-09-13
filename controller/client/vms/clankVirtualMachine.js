@@ -39,7 +39,7 @@ export default function ClankVM(osap) {
     accel: {  // mm/sec^2 
       X: 1000,  // 1500
       Y: 1000,  // 1500
-      Z: 150,   // 300, 
+      Z: 250,   // 300, 
       E: 150    // 500 
     },
     maxRate: {
@@ -77,7 +77,7 @@ export default function ClankVM(osap) {
     ZLR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(5).end()),
     ZRF: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(6).end()),
     ZRR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(7).end()),
-    E: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(9).end())
+    //E: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(11).end())
   }
 
   // .settings() just preps for the .init() or whatever other call, 
@@ -112,12 +112,12 @@ export default function ClankVM(osap) {
   })
 
   let zMotorMicrostep = 16
-  let zMotorSPU = 228.571428575
+  let zMotorSPU = 428.5714286
   let zMotorCurrent = 0.5
 
   this.motors.ZLF.settings({
     axisPick: 2,
-    axisInversion: false,
+    axisInversion: true,
     microstep: zMotorMicrostep,
     SPU: zMotorSPU,
     currentScale: zMotorCurrent,
@@ -147,7 +147,7 @@ export default function ClankVM(osap) {
 
   this.motors.ZRR.settings({
     axisPick: 2,
-    axisInversion: false,
+    axisInversion: true,
     microstep: zMotorMicrostep,
     SPU: zMotorSPU,
     currentScale: zMotorCurrent,
@@ -155,6 +155,7 @@ export default function ClankVM(osap) {
     homeOffset: 5
   })
 
+  /*
   this.motors.E.settings({
     axisPick: 3,
     axisInversion: true, 
@@ -162,6 +163,7 @@ export default function ClankVM(osap) {
     SPU: 1200,  // 1200 
     currentScale: 0.5, // 0.5, 0.2 for nathan plunger
   })
+  */
 
   // ------------------------------------------------------ setup / handle motor group
 
