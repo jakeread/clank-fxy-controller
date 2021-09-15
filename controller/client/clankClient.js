@@ -222,7 +222,7 @@ let runHomeRoutine = async () => {
     await vm.motion.setPos({
       X: 194, // about 0->130mm x should be safe,
       Y: 172, // about 0->170mm y should be safe
-      Z: 15   // 260mm tall max, abt 
+      Z: 193   // 260mm tall max, abt 
     })
   } catch (err) {
     console.error(err)
@@ -380,5 +380,24 @@ gotoStartBtn.onClick(() => {
     gotoStartBtn.bad('err')
   })
 })
-
 */
+
+// -------------------------------------------------------- Bed Loadcells
+
+let BedLoadVm = new LoadVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(9).end())
+
+// -------------------------------------------------------- Bed Heater Module
+
+let BedHeaterVM = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(10).end())
+
+let BedPanel = new TempPanel(BedHeaterVM, 450, 10, 60, 'bed')
+
+// -------------------------------------------------------- Hotend Heater Module
+
+let HotendVM = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(12).end())
+
+let HotendPanel = new TempPanel(HotendVM, 450, 400, 210, 'hotend')
+
+// -------------------------------------------------------- Hotend Loadcell
+
+let HotendLoadVM = new LoadVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(13).end())

@@ -77,7 +77,7 @@ export default function ClankVM(osap) {
     ZLR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(5).end()),
     ZRF: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(6).end()),
     ZRR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(7).end()),
-    //E: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(11).end())
+    E: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(11).end())
   }
 
   // .settings() just preps for the .init() or whatever other call, 
@@ -155,15 +155,13 @@ export default function ClankVM(osap) {
     homeOffset: 5
   })
 
-  /*
   this.motors.E.settings({
     axisPick: 3,
     axisInversion: true, 
-    microstep: 4,
-    SPU: 1200,  // 1200 
-    currentScale: 0.5, // 0.5, 0.2 for nathan plunger
+    microstep: 8,
+    SPU: 71,
+    currentScale: 0.4, 
   })
-  */
 
   // ------------------------------------------------------ setup / handle motor group
 

@@ -34,6 +34,45 @@ wherein `cz` should be renamed `fxy` and I reuse this code for *lots of things*
 - CL & OL motors should work together, shouldn't all have to be the same 
 - do Z first, avoid this knock 
 
+## 2021 09 15
+
+Print something!
+
+Alright, ya boi all wired up, hotend included... there's 12 circuits involved now. Next is testing the hotend to temperature and extruding something, checking steps per unit on the stepper. Then I'm up on setting the height-after-home, and I guess a test print. 
+
+Testing extruder SPU, I think I want a jog option to decrease jog rate significantly on e moves... 
+
+- extruder jog / extruder SPU again 
+- ... ready test print ? sticky print surface, set z height after home, try the cube
+- probably need / want stiffness map and level set code ? might be a whole thing
+- try just one squish from the center 
+
+## 2021 09 14 
+
+A minute of work here today; the hotend is all assembled now and new firmwares loaded so I need to dish out some bus IDs and setup virtual machines in the code... 
+
+- bus addresses 
+  - X: 1
+  - YL: 2
+  - YR: 3
+  - ZLF: 4
+  - ZLR: 5
+  - ZRF: 6
+  - ZRR: 7 
+  - now check motion system, homing... 
+  - Tool Plate: 8 (reserve)
+  - Bed Loadcells: 9
+  - Bed Heater: 10 
+  - Extruder Motor: 11
+  - Hotend: 12
+  - Extruder Loadcells: 13
+
+I'll try to deal w/ multi-tooling later... need a better way to expose the top level controller in that case. I guess an ideal OSAP would do that under a graph switchup... two different configs for the toolchange. Interesting, but the systems are indeed not quite there yet, needs the MVC controller and oy oy vey, hopefully that all can come with the d-pads project. 
+
+I'm going to set up the front brace to do the cable routing out, I think I need a second splitter also, sheesh. 
+
+Alright - I just need one more of these bus breakout things. I can just mount it bare up to the frame w/ some spacers... but I'm printing a thing to do it 'proper like' - that's on, will wire up and wake up tomorrow, try to get a print out, some test cube, then maybe even a print-and-squish. 
+
 ## 2021 09 13
 
 Just setting one of these up again. 
@@ -59,7 +98,11 @@ Ack, I've changed the bus since last... thought I tested motion, maybe haven't u
 
 Now limits not hooking up, IDK. Now totally flumoxxed, I guess I was using the limit as a debug probably. Yep, that was all. 
 
-OK back up on motion and homing. Should test the bed heater. 
+OK back up on motion and homing. Should test the bed heater. Goal is to get up to printing today / next day. 
+
+OK print bed is back online, gets nice and hot and isn't so slow, and am happily whacking 240W through those two little tiny mosfets. Love a good gate driver. 
+
+Wednesday will do the rest: hotend assembly, loadcell config... not an exceptionally complex beast once the head's back in it. 
 
 ## 2021 07 07 
 
