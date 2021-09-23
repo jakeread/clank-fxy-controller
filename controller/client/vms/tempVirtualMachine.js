@@ -64,4 +64,17 @@ export default function TempVM(osap, route) {
       }).catch((err) => { reject(err) })
     })
   }
+
+  // set PCF ratio 
+  let pcfEP = osap.endpoint()
+  pcfEP.addRoute(PK.route(route).sib(6).end())
+  this.setPCF = (duty) => {
+    return new Promise((resolve, reject) => {
+      let datagram = new Uint8Array(4)
+      TS.write('float32', duty, datagram, 0, true)
+      pcfEP.write(datagram, "acked").then(() => {
+        resolve()
+      }).catch((err) => { reject(err) })
+    })
+  }
 }

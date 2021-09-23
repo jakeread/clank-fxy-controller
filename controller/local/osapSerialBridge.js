@@ -27,8 +27,6 @@ import COBS from './utes/cobs.js'
 // temporary...
 import { reverseRoute } from '../osapjs/core/osapLoop.js'
 
-let LOGPHY = false
-
 // we include an osap object - a node
 let osap = new OSAP()
 osap.name = "local-usb-bridge"

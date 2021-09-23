@@ -35,6 +35,7 @@ import LoadPanel from '../osapjs/client/components/loadPanel.js'
 import FilamentExperiment from '../client/components/filamentExperiment.js'
 import StiffnessMapper from '../client/components/bedStiffnessMapper.js'
 import MotorVM from './vms/motorVirtualMachine.js'
+import PNS from './experiments/printAndSquish.js'
 
 console.log("hello clank controller")
 
@@ -220,8 +221,8 @@ let runHomeRoutine = async () => {
   homeBtn.yellow('setting home position...')
   try {
     await vm.motion.setPos({
-      X: 194, // about 0->130mm x should be safe,
-      Y: 172, // about 0->170mm y should be safe
+      X: 254, // about 0->130mm x should be safe,
+      Y: 122, // about 0->170mm y should be safe
       Z: 193   // 260mm tall max, abt 
     })
   } catch (err) {
@@ -274,33 +275,72 @@ posDisplay.onClick(posDisplayKick)
 
 let jogBox = new JogBox(10, 300, vm, 200)
 
-// -------------------------------------------------------- Z Zero
+// -------------------------------------------------------- All Zero
 
-let zeroSetBtn = new EZButton(10, 550, 84, 14, 'set z zero')
+let zeroSetBtn = new EZButton(10, 550, 84, 14, 'set XYZ zero')
 zeroSetBtn.onClick(() => {
-  vm.motion.setZ(0).then(() => {
-    zeroSetBtn.good("z set", 750)
+  vm.motion.setPos({X: 0, Y: 0, Z: 0}).then(() => {
+    zeroSetBtn.good("all set 0", 750)
   }).catch((err) => {
     console.error(err)
     zeroSetBtn.bad("err, see console")
   })
 })
 
-// -------------------------------------------------------- Dead Center
+// -------------------------------------------------------- XY Zero
 
-let centerSetBtn = new EZButton(10, 580, 84, 14, 'set center')
+let centerSetBtn = new EZButton(10, 580, 84, 14, 'set XY zero')
 centerSetBtn.onClick(() => {
-  vm.motion.setPos({X:65, Y:85, Z: 0}).then(() => {
-    centerSetBtn.good('center set', 750)
+  vm.motion.getPos().then((pos) => {
+    return vm.motion.setPos({
+      X: 0, Y: 0,
+      Z: pos.Z
+    })
+  }).then(() => {
+    centerSetBtn.good('xy set 0', 750)
   }).catch((err) => {
     console.error(err)
     centerSetBtn.bad("err, see console")
   })
 })
 
+// -------------------------------------------------------- Z Zero 
+
+let zZeroSetBtn = new EZButton(10, 610, 84, 14, 'set Z zero')
+zZeroSetBtn.onClick(() => {
+  vm.motion.setZ(0).then(() => {
+    zZeroSetBtn.good("z set 0", 750)
+  }).catch((err) => {
+    console.error(err)
+    zZeroSetBtn.bad("err, see console")
+  })
+})
+
+// -------------------------------------------------------- goto zero 
+
+let gotoZeroBtn = new EZButton(10, 640, 81, 14, 'goto zero')
+gotoZeroBtn.onClick(async () => {
+  try {
+    await vm.motion.awaitMotionEnd()
+    await vm.motion.setWaitTime(10)
+    await vm.motion.addMoveToQueue({
+      position: {
+        X: 0, Y: 0, Z: 0
+      },
+      rate: 50
+    })
+    await vm.motion.awaitMotionEnd()
+    await vm.motion.setWaitTime(1000)
+    gotoZeroBtn.good("ok")
+  } catch (err) {
+    gotoZeroBtn.bad("err!")
+    console.error(err)
+  }
+})
+
 // -------------------------------------------------------- SERVO / TC
 
-let servoTestBtn = new EZButton(10, 630, 84, 14, 'toolchanger')
+let servoTestBtn = new EZButton(10, 690, 84, 14, 'toolchanger')
 let servoState = 'closed'
 servoTestBtn.onClick(() => {
   if (servoState == 'closed') {
@@ -324,7 +364,7 @@ servoTestBtn.onClick(() => {
 
 // -------------------------------------------------------- E Disable 
 
-let eDisableBtn = new EZButton(10, 660, 84, 14, 'switch E pwr')
+let eDisableBtn = new EZButton(10, 720, 84, 14, 'switch E pwr')
 let eState = 'enabled'
 eDisableBtn.onClick(() => {
   if(eState == 'disabled'){
@@ -346,11 +386,31 @@ eDisableBtn.onClick(() => {
   }
 })
 
+// -------------------------------------------------------- Bed Loadcells
+
+let BedLoadVm = new LoadVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(9).end())
+
+// -------------------------------------------------------- Bed Heater Module
+
+let BedHeaterVM = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(18).end())
+
+let BedPanel = new TempPanel(BedHeaterVM, 450, 10, 60, 'bed')
+
+// -------------------------------------------------------- Hotend Heater Module
+
+let HotendVM = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(17).end())
+
+let HotendPanel = new TempPanel(HotendVM, 450, 400, 210, 'hotend', false, true)
+
+// -------------------------------------------------------- Hotend Loadcell
+
+let HotendLoadVM = new LoadVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(13).end())
+
 // -------------------------------------------------------- GCode Input
 
-let gCodePanel = new GCodePanel(120, 10, 300, vm)
+let gCodePanel = new GCodePanel(120, 10, 300, vm, HotendVM)
 // to load on restart...
-gCodePanel.loadServerFile('save/daikon-slowly.gcode').then(() => {
+gCodePanel.loadServerFile('save/6-pacman.gcode').then(() => {
   console.log("gcode initial file load OK")
 }).catch((err) => {
   console.error("failed to load default gcode from server")
@@ -363,41 +423,7 @@ gCodePanel.loadServerFile('save/daikon-slowly.gcode').then(() => {
 // 'save/clank-lz-bed-face.gcode'
 // 'save/3dp-10mmbox.gcode'
 
-/*
-let gotoStartBtn = new Button(250, 160, 84, 14, 'goto home')
-gotoStartBtn.onClick(() => {
-  vm.motion.awaitMotionEnd().then(() => {
-    return vm.motion.addMoveToQueue({
-      position: rearLeftZero,
-      rate: 1000
-    })
-  }).then(() => {
-    return vm.motion.awaitMotionEnd()
-  }).then(() => {
-    gotoStartBtn.good('ok')
-  }).catch((err) => {
-    console.log(err)
-    gotoStartBtn.bad('err')
-  })
-})
-*/
+// -------------------------------------------------------- STUB
+// this is what you write next...
 
-// -------------------------------------------------------- Bed Loadcells
-
-let BedLoadVm = new LoadVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(9).end())
-
-// -------------------------------------------------------- Bed Heater Module
-
-let BedHeaterVM = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(10).end())
-
-let BedPanel = new TempPanel(BedHeaterVM, 450, 10, 60, 'bed')
-
-// -------------------------------------------------------- Hotend Heater Module
-
-let HotendVM = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(12).end())
-
-let HotendPanel = new TempPanel(HotendVM, 450, 400, 210, 'hotend')
-
-// -------------------------------------------------------- Hotend Loadcell
-
-let HotendLoadVM = new LoadVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(13).end())
+let pns = new PNS(vm, HotendVM, BedHeaterVM, BedLoadVm)

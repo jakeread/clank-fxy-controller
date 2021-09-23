@@ -29,11 +29,6 @@ wherein `cz` should be renamed `fxy` and I reuse this code for *lots of things*
 - bed probe / kinematic corrections 
 - mocontrol that lives on the pi / server that lives on the machine 
 
-### Motion Control Closed Loop Overhaul
-
-- CL & OL motors should work together, shouldn't all have to be the same 
-- do Z first, avoid this knock 
-
 ## 2021 09 15
 
 Print something!
