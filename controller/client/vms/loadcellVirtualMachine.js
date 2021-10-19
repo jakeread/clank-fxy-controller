@@ -27,6 +27,7 @@ export default function LoadVM(osap, route) {
           xy[ch][1][i] = xy[ch][1][i] * 0.00980665;
         }
         lsq[ch].setObservations(xy[ch])
+        console.log(`lsq[${ch}]: `, lsq[ch].printFunction())
       }
     }
   }

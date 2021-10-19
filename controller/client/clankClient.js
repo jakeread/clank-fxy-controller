@@ -194,42 +194,8 @@ motorEnableBtn.onClick(toggleMotorEnable)
 let homeBtn = new Button(10, 170, 84, 34, 'home: ?')
 homeBtn.red()
 let runHomeRoutine = async () => {
-  homeBtn.yellow('awaiting motion end...')
-  try {
-    await vm.motion.awaitMotionEnd()
-  } catch (err) {
-    console.error(err)
-    homeBtn.red('motion end err, see console')
-    return 
-  }
-  homeBtn.yellow('homing Z ...')
-  try {
-    await vm.homeZ()
-  } catch (err) {
-    console.error(err)
-    homeBtn.red('Z homing err, see console')
-    return 
-  }
-  homeBtn.yellow('homing XY ...')
-  try {
-    await vm.homeXY()
-  } catch (err) {
-    console.error(err)
-    homeBtn.red('XY homing err, see console')
-    return 
-  }
-  homeBtn.yellow('setting home position...')
-  try {
-    await vm.motion.setPos({
-      X: 254, // about 0->130mm x should be safe,
-      Y: 122, // about 0->170mm y should be safe
-      Z: 193   // 260mm tall max, abt 
-    })
-  } catch (err) {
-    console.error(err)
-    homeBtn.red('set position err, see console')
-    return 
-  }
+  homeBtn.yellow('homing...')
+  vm.home()
   homeBtn.green('home: ok')
 }
 homeBtn.onClick(runHomeRoutine)
@@ -279,7 +245,7 @@ let jogBox = new JogBox(10, 300, vm, 200)
 
 let zeroSetBtn = new EZButton(10, 550, 84, 14, 'set XYZ zero')
 zeroSetBtn.onClick(() => {
-  vm.motion.setPos({X: 0, Y: 0, Z: 0}).then(() => {
+  vm.motion.setPos({ X: 0, Y: 0, Z: 0 }).then(() => {
     zeroSetBtn.good("all set 0", 750)
   }).catch((err) => {
     console.error(err)
@@ -367,7 +333,7 @@ servoTestBtn.onClick(() => {
 let eDisableBtn = new EZButton(10, 720, 84, 14, 'switch E pwr')
 let eState = 'enabled'
 eDisableBtn.onClick(() => {
-  if(eState == 'disabled'){
+  if (eState == 'disabled') {
     vm.motors.E.enable().then(() => {
       eDisableBtn.good('enabed', 750)
       eState = 'enabled'
@@ -390,6 +356,42 @@ eDisableBtn.onClick(() => {
 
 let BedLoadVm = new LoadVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(9).end())
 
+// FR, FL, RC
+let loadCalib = [
+  // FR:
+  [
+    [-59700, -79850, -110200, -160500, -210900],
+    [0, 200, 500, 1000, 1500]
+  ],
+  // FL:
+  [
+    [52100, 74500, 108750, 164750, 221150],
+    [0, 200, 500, 1000, 1500]
+  ],
+  // RC:
+  [
+    [-24400, -2350, 30700, 85700, 140650],
+    [0, 200, 500, 1000, 1500]
+  ],
+]
+
+BedLoadVm.setObservations('grams', loadCalib)
+
+let ltb = new EZButton(570, 280, 84, 84, 'load')
+ltb.onClick(() => {
+  let upd8 = () => {
+    BedLoadVm.getReading().then((data) => {
+      //console.log(data)
+      ltb.setText((data[0] + data[1] + data[2] / 3).toFixed(2))
+      upd8()
+    }).catch((err) => {
+      console.error(err)
+      ltb.bad()
+    })
+  }
+  upd8()
+})
+
 // -------------------------------------------------------- Bed Heater Module
 
 let BedHeaterVM = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(18).end())
@@ -410,7 +412,7 @@ let HotendLoadVM = new LoadVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1
 
 let gCodePanel = new GCodePanel(120, 10, 300, vm, HotendVM)
 // to load on restart...
-gCodePanel.loadServerFile('save/6-pacman.gcode').then(() => {
+gCodePanel.loadServerFile('save/3p30mm_pacman.gcode').then(() => {
   console.log("gcode initial file load OK")
 }).catch((err) => {
   console.error("failed to load default gcode from server")
@@ -426,4 +428,14 @@ gCodePanel.loadServerFile('save/6-pacman.gcode').then(() => {
 // -------------------------------------------------------- STUB
 // this is what you write next...
 
-let pns = new PNS(vm, HotendVM, BedHeaterVM, BedLoadVm)
+// le print-n-squish 
+let pns = new PNS(vm, HotendVM, BedHeaterVM, BedLoadVm, gCodePanel)
+let brb = new EZButton(450, 280, 84, 84, 'runtime')
+brb.onClick(() => {
+  pns.runTest().then(() => {
+    brb.good()
+  }).catch((err) => {
+    console.error(err)
+    brb.bad()
+  })
+})

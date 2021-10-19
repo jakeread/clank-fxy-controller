@@ -15,8 +15,8 @@ no warranty is provided, and users accept all liability.
 import { PK, TS, VT, EP, TIMES } from '../../osapjs/core/ts.js'
 import { delay } from '../../osapjs/core/time.js'
 
-export default function MotionVM(osap, route){
-    // ok: we make an 'endpoint' that will transmit moves,
+export default function MotionVM(osap, route) {
+  // ok: we make an 'endpoint' that will transmit moves,
   let moveEP = osap.endpoint()
   // add the machine head's route to it, 
   moveEP.addRoute(PK.route(route).sib(2).end())
@@ -111,7 +111,7 @@ export default function MotionVM(osap, route){
   this.getMotionState = () => {
     return new Promise((resolve, reject) => {
       motionQuery.pull().then((data) => {
-        if(data[0] > 0){
+        if (data[0] > 0) {
           resolve(true)
         } else {
           resolve(false)
@@ -172,10 +172,20 @@ export default function MotionVM(osap, route){
     }
   }
 
+  this.goTo = async (move, rate) => {
+    if (!rate) rate = 6000
+    try {
+      await this.awaitMotionEnd()
+      await this.addMoveToQueue(move, rate)
+      await delay(5)
+      await this.awaitMotionEnd()
+    } catch (err) { throw err }
+  }
+
   // endpoint to set per-axis accelerations,
   let accelEP = osap.endpoint()
   accelEP.addRoute(PK.route(route).sib(7).end())
-  this.setAccels = (accels) => { 
+  this.setAccels = (accels) => {
     // mm/sec/sec 
     let wptr = 0
     let datagram = new Uint8Array(16)
@@ -214,7 +224,7 @@ export default function MotionVM(osap, route){
         resolve()
       }).catch((err) => { reject(err) })
     })
-  } 
+  }
 
   // ------------------------------------------------------ JS API 
 
@@ -227,7 +237,7 @@ export default function MotionVM(osap, route){
     },
     maxRate: {  // mm/sec 
       X: 100,
-      Y: 100, 
+      Y: 100,
       Z: 100,
       E: 100
     }
@@ -236,18 +246,18 @@ export default function MotionVM(osap, route){
   this.settings = (settings) => {
     // this could be a proper forever-recursion to diff against 
     // default config setup... however;
-    for(let key in settings){ 
-      if(key == 'accel' && key in config){
-        for(let axis in settings.accel){
-          if(axis in config.accel){
+    for (let key in settings) {
+      if (key == 'accel' && key in config) {
+        for (let axis in settings.accel) {
+          if (axis in config.accel) {
             config.accel[axis] = settings.accel[axis]
           } else {
             console.warn(`motion/accel settings spec axis '${axis}', it doesn't exist`)
           }
         }
-      } else if (key == 'maxRate' && key in config){
-        for(let axis in settings.maxRate){
-          if(axis in config.maxRate){
+      } else if (key == 'maxRate' && key in config) {
+        for (let axis in settings.maxRate) {
+          if (axis in config.maxRate) {
             config.maxRate[axis] = settings.maxRate[axis]
           } else {
             console.warn(`motion/maxRate settings spec axis '${axis}', it doesn't exist`)
@@ -266,7 +276,7 @@ export default function MotionVM(osap, route){
       await this.setAccels(config.accel)
       await this.setMaxRates(config.maxRate)
     } catch (err) {
-      throw err 
+      throw err
     }
   }
 

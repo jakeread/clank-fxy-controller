@@ -30,6 +30,14 @@ export default function ClankVM(osap) {
 
   let headRoute = PK.route().sib(0).pfwd().sib(1).pfwd().end()
 
+  // position after-homing ?
+  
+  let posOnHome = {
+    X: 254,     // about 0->130mm x should be safe,
+    Y: 122,     // about 0->170mm y should be safe
+    Z: 194.1    // 260mm tall max, abt 
+  }
+
   // ------------------------------------------------------ MOTION
   // with base route -> embedded smoothie instance 
   this.motion = new MotionVM(osap, headRoute)
@@ -87,7 +95,7 @@ export default function ClankVM(osap) {
     microstep: 16,
     SPU: 80,
     currentScale: 0.4,
-    homeRate: 20, // units / sec
+    homeRate: 40, // units / sec
     homeOffset: 5, // units 
   })
 
@@ -97,7 +105,7 @@ export default function ClankVM(osap) {
     microstep: 16,
     SPU: 80,
     currentScale: 0.4,
-    homeRate: 20,
+    homeRate: 40,
     homeOffset: 5,
   })
 
@@ -107,7 +115,7 @@ export default function ClankVM(osap) {
     microstep: 16,
     SPU: 80,
     currentScale: 0.4,
-    homeRate: 20,
+    homeRate: 40,
     homeOffset: 5
   })
 
@@ -121,7 +129,7 @@ export default function ClankVM(osap) {
     microstep: zMotorMicrostep,
     SPU: zMotorSPU,
     currentScale: zMotorCurrent,
-    homeRate: 10,
+    homeRate: 20,
     homeOffset: 5
   })
 
@@ -131,7 +139,7 @@ export default function ClankVM(osap) {
     microstep: zMotorMicrostep,
     SPU: zMotorSPU,
     currentScale: zMotorCurrent,
-    homeRate: 10,
+    homeRate: 20,
     homeOffset: 5
   })
 
@@ -141,7 +149,7 @@ export default function ClankVM(osap) {
     microstep: zMotorMicrostep,
     SPU: zMotorSPU,
     currentScale: zMotorCurrent,
-    homeRate: 10,
+    homeRate: 20,
     homeOffset: 5
   })
 
@@ -151,7 +159,7 @@ export default function ClankVM(osap) {
     microstep: zMotorMicrostep,
     SPU: zMotorSPU,
     currentScale: zMotorCurrent,
-    homeRate: 10,
+    homeRate: 20,
     homeOffset: 5
   })
 
@@ -239,6 +247,14 @@ export default function ClankVM(osap) {
       if (this.motors.X) await this.motors.X.awaitHomeComplete()
       if (this.motors.YL) await this.motors.YL.awaitHomeComplete()
       if (this.motors.YR) await this.motors.YR.awaitHomeComplete()
+    } catch (err) { throw err }
+  }
+
+  this.home = async () => {
+    try {
+      await this.homeZ() 
+      await this.homeXY()
+      await this.motion.setPos(posOnHome)
     } catch (err) { throw err }
   }
 
