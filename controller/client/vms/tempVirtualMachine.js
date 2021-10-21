@@ -29,7 +29,7 @@ export default function TempVM(osap, route) {
   }
 
   // query current temp 
-  let tempQuery = osap.query(PK.route(route).sib(3).end())
+  let tempQuery = osap.query(PK.route(route).sib(3).end(), 3)
   this.getExtruderTemp = () => {
     return new Promise((resolve, reject) => {
       tempQuery.pull().then((data) => {
@@ -37,6 +37,24 @@ export default function TempVM(osap, route) {
         resolve(temp)
       }).catch((err) => { reject(err) })
     })
+  }
+
+  // await temp...
+  this.awaitExtruderTemp = async (temp) => {
+    try {
+      await this.setExtruderTemp(temp)
+      while(true){
+        await TIMES.delay(250)
+        let ct = await this.getExtruderTemp()
+        console.log(`temp: ${ct}`)
+        if(temp + 1 > ct && temp - 1 < ct){
+          console.log('temp OK')
+          break 
+        }
+      }
+    } catch (err) {
+      throw err 
+    }
   }
 
   // query current heater effort 

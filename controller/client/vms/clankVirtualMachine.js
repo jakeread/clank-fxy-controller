@@ -35,7 +35,7 @@ export default function ClankVM(osap) {
   let posOnHome = {
     X: 254,     // about 0->130mm x should be safe,
     Y: 122,     // about 0->170mm y should be safe
-    Z: 194.1    // 260mm tall max, abt 
+    Z: 193.8    // 260mm tall max, abt 
   }
 
   // ------------------------------------------------------ MOTION

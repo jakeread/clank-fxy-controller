@@ -432,7 +432,7 @@ gCodePanel.loadServerFile('save/3p30mm_pacman.gcode').then(() => {
 let pns = new PNS(vm, HotendVM, BedHeaterVM, BedLoadVm, gCodePanel)
 let brb = new EZButton(450, 280, 84, 84, 'runtime')
 brb.onClick(() => {
-  pns.runTest().then(() => {
+  pns.runTest(220, 40).then(() => {
     brb.good()
   }).catch((err) => {
     console.error(err)

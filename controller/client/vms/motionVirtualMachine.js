@@ -28,6 +28,9 @@ export default function MotionVM(osap, route) {
     let wptr = 0
     let datagram = new Uint8Array(20)
     // write rate 
+    if(rateOverride.state){
+      move.rate = rateOverride.rate 
+    }
     wptr += TS.write('float32', move.rate, datagram, wptr, true)
     // write posns 
     wptr += TS.write('float32', move.position.X, datagram, wptr, true)
@@ -48,6 +51,15 @@ export default function MotionVM(osap, route) {
         reject(err)
       })
     })
+  }
+
+  let rateOverride = { state: false, rate: 10 }
+  this.overrideAllRates = (rate) => {
+    console.warn(`MOTION: overriding all rates to ${rate} units/s`)
+    rateOverride = { state: true, rate: rate } 
+  }
+  this.stopRateOverride = () => {
+    rateOverride.state = false 
   }
 
   // to set the current position, 
@@ -152,7 +164,7 @@ export default function MotionVM(osap, route) {
     })
   }
 
-  this.delta = async (move, rate) => {
+  this.delta = async (move, rate, awaitCompletion = true) => {
     try {
       if (!rate) rate = 6000
       await this.setWaitTime(1)
@@ -163,9 +175,11 @@ export default function MotionVM(osap, route) {
         position: { X: cp.X + move[0], Y: cp.Y + move[1], Z: cp.Z + move[2] },
         rate: rate
       })
-      await delay(5)
-      await this.awaitMotionEnd()
-      await this.setWaitTime(100)
+      if(awaitCompletion){
+        await delay(5)
+        await this.awaitMotionEnd()
+        await this.setWaitTime(100)  
+      }
     } catch (err) {
       console.error('arising during delta')
       throw err
