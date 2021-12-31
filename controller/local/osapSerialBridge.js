@@ -96,13 +96,14 @@ WSSPipe.start().then((ws) => {
 serVPort.maxSegLength = 512 // lettuce do this for embedded expectations
 let LOGSER = false
 let LOGSERTX = false
-let LOGSERRX = false 
+let LOGSERRX = false
 let findSerialPort = (pid) => {
   if (LOGSER) console.log(`SERPORT hunt for productId: ${pid}`)
   return new Promise((resolve, reject) => {
     SerialPort.list().then((ports) => {
       let found = false
       for (let port of ports) {
+        if(LOGSER) console.log(`found port w/ pid: `, port.productId)
         if (port.productId === pid) {
           found = true
           resolve(port.path)
@@ -206,8 +207,11 @@ let startSerialPort = (pid, options) => {
   })
 } // end start serial
 
-startSerialPort('8031')
+// SAMD21 Gemma M0 is 801C, D51 Feather M4 is 8031 
+let portSearchID = '801C'
+
+startSerialPort(portSearchID)
 
 serVPort.requestOpen = () => {
-  startSerialPort('8031')
+  startSerialPort(portSearchID)
 }

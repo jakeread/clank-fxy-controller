@@ -36,6 +36,7 @@ import FilamentExperiment from '../client/components/filamentExperiment.js'
 import StiffnessMapper from '../client/components/bedStiffnessMapper.js'
 import MotorVM from './vms/motorVirtualMachine.js'
 import PNS from './experiments/printAndSquish.js'
+import FilamentSensorVM from './vms/filamentSensorVM.js'
 
 console.log("hello clank controller")
 
@@ -437,5 +438,23 @@ brb.onClick(() => {
   }).catch((err) => {
     console.error(err)
     brb.bad()
+  })
+})
+
+// filament sensor, 
+
+//let filSense = new FilamentSensorVM(oasp, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(16).end())
+let filSense = new FilamentSensorVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().end())
+
+// test x motor (bus debug) 
+
+let tstBtn = new EZButton(450, 650, 84, 84, 'test fil hall')
+tstBtn.onClick(() => {
+  filSense.getHallReading().then((reading) => {
+    console.warn(reading)
+    tstBtn.good()
+  }).catch((err) => {
+    console.error(err)
+    tstBtn.bad()
   })
 })
