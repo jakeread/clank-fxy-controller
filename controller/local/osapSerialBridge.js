@@ -28,8 +28,7 @@ import COBS from './utes/cobs.js'
 import { reverseRoute } from '../osapjs/core/osapLoop.js'
 
 // we include an osap object - a node
-let osap = new OSAP()
-osap.name = "local-usb-bridge"
+let osap = new OSAP("localUsbBridge")
 osap.description = "node featuring wss to client and usbserial cobs connection to hardware"
 
 // -------------------------------------------------------- WSS VPort

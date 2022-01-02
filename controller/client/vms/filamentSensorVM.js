@@ -16,7 +16,7 @@ import { PK, TS } from '../../osapjs/core/ts.js'
 
 export default function FilamentSensorVM(osap, route) {
 
-  let hallQuery = osap.query(PK.route(route).sib(2).end())
+  let hallQuery = osap.query(PK.route(route).sib(1).end())
   this.getHallReading = () => {
     return new Promise((resolve, reject) => {
       hallQuery.pull().then((data) => {

@@ -41,13 +41,13 @@ import FilamentSensorVM from './vms/filamentSensorVM.js'
 console.log("hello clank controller")
 
 // the osap root node:
-let osap = new OSAP()
+let osap = new OSAP("clankClient")
 
 let grid = new Grid()
 
 // -------------------------------------------------------- SETUP NETWORK / PORT 
 
-let wscVPort = osap.vPort()
+let wscVPort = osap.vPort("wscVPort")
 
 let LOGPHY = false
 
@@ -446,8 +446,6 @@ brb.onClick(() => {
 //let filSense = new FilamentSensorVM(oasp, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(16).end())
 let filSense = new FilamentSensorVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().end())
 
-// test x motor (bus debug) 
-
 let tstBtn = new EZButton(450, 650, 84, 84, 'test fil hall')
 tstBtn.onClick(() => {
   filSense.getHallReading().then((reading) => {
@@ -456,5 +454,43 @@ tstBtn.onClick(() => {
   }).catch((err) => {
     console.error(err)
     tstBtn.bad()
+  })
+})
+
+// let's see about an endpoint to hit from embedded:
+
+let interval = 0 
+let stash = 0 
+let now = TIMES.getTimeStamp()
+let rollover = 0 
+
+let testEP = osap.endpoint("testTarget") 
+testEP.onData = (data) => {
+  let flt = TS.read('float32', data, 0)
+  console.log(flt)
+  return new Promise((resolve, reject) => {
+    //console.warn('hit!')
+    stash = TIMES.getTimeStamp()
+    interval = interval * 0.95 + (stash - now) * 0.05
+    now = stash 
+    rollover ++ 
+    if(rollover > 10) {
+      console.log(interval)
+      rollover = 0 
+    }
+    //console.warn(data)
+    resolve()
+  })
+}
+console.log(testEP)
+
+let netBtn = new EZButton(550, 650, 84, 84, 'test netrunner')
+netBtn.onClick(() => {
+  osap.netRunner.sweep().then((graph) => {
+    console.log(graph)
+    netBtn.good()
+  }).catch((err) => {
+    console.error(err)
+    netBtn.bad()
   })
 })
