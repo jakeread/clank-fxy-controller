@@ -17,37 +17,18 @@ import OSAP from '../osapjs/core/osapRoot.js'
 import { TS, PK, TIMES } from '../osapjs/core/ts.js'
 
 import WSSPipe from './utes/wssPipe.js'
+import VPortSerial from '../osapjs/vport/vPortSerial.js'
 
-import SerialPort from 'serialport'
-import Delimiter from '@serialport/parser-delimiter'
-import ByteLength from '@serialport/parser-byte-length'
-
-import COBS from './utes/cobs.js'
-
-// temporary...
-import { reverseRoute } from '../osapjs/core/osapLoop.js'
+import { SerialPort } from 'serialport'
 
 // we include an osap object - a node
-let osap = new OSAP("localUsbBridge")
+let osap = new OSAP()
+osap.name = "local-usb-bridge"
 osap.description = "node featuring wss to client and usbserial cobs connection to hardware"
 
 // -------------------------------------------------------- WSS VPort
 
 let wssVPort = osap.vPort("wssVPort")   // 0
-let serVPort = osap.vPort("serVPort");  // 1
-
-// test endpoint, 
-
-let ep2 = osap.endpoint()
-
-ep2.onData = (buffer) => {
-  return new Promise((resolve, reject) => {
-    TIMES.delay(250).then(() => {
-      console.log('EP2 clear')
-      resolve()  
-    })
-  })
-}
 
 // then resolves with the connected webSocketServer to us 
 let LOGWSSPHY = false 
@@ -92,125 +73,55 @@ WSSPipe.start().then((ws) => {
 
 // -------------------------------------------------------- USB Serial VPort
 
-serVPort.maxSegLength = 512 // lettuce do this for embedded expectations
-let LOGSER = false
-let LOGSERTX = false
-let LOGSERRX = false
-let findSerialPort = (pid) => {
-  if (LOGSER) console.log(`SERPORT hunt for productId: ${pid}`)
-  return new Promise((resolve, reject) => {
-    SerialPort.list().then((ports) => {
-      let found = false
-      for (let port of ports) {
-        if(LOGSER) console.log(`found port w/ pid: `, port.productId)
-        if (port.productId === pid) {
-          found = true
-          resolve(port.path)
-          break
-        }
+// we'd like to periodically poke around and find new ports... 
+let pidCandidates = [
+  '801E', '80CB', '8031', '80CD', '800B'
+]
+let activePorts = []
+let portSweeper = () => {
+  SerialPort.list().then((ports) => {
+    for(let port of ports){
+      let cand = pidCandidates.find(elem => elem == port.productId)
+      if(cand && !activePorts.find(elem => elem.portName == port.path)){ 
+        // we have a match, but haven't already opened this port, 
+        console.log(`FOUND desired prt at ${port.path}, launching vport...`)
+        activePorts.push(new VPortSerial(osap, port.path))
+        console.log(activePorts)
       }
-      if (!found) reject(`serialport w/ productId: ${pid} not found`)
-    }).catch((err) => {
-      reject(err)
-    })
-  })
-}
-
-let opencount = 0
-
-// options: passthrough for node-serialport API
-let startSerialPort = (pid, options) => {
-  // implement status
-  let status = "opening"
-  let flowCondition = () => { return false }
-  serVPort.cts = () => { 
-    if(status = "open" && flowCondition()){
-      return true
-    } else {
-      return false 
     }
-  }
-  // open up,
-  findSerialPort(pid).then((com) => {
-    if (true) console.log(`SERPORT contact at ${com}, opening`)
-    let port = new SerialPort(com, options)
-    let pcount = opencount
-    opencount++
-    port.on('open', () => {
-      // we track remote open spaces, this is stateful per link... 
-      let rcrxb = 4 // see vt_usbSerial.h for how many remote spaces we can push to, and use that # - 1,  
-      console.log(`SERPORT at ${com} #${pcount} OPEN`)
-      // is now open,
-      status = "open"
-      // to get, use delimiter
-      let parser = port.pipe(new Delimiter({ delimiter: [0] }))
-      //let parser = port.pipe(new ByteLength({ length: 1 }))
-      flowCondition = () => {
-        return (rcrxb > 0)
+    // also... check deadies, 
+    for(let vp of activePorts){
+      if(vp.status == "closed"){
+        console.log(`CLOSED and rming ${vp.portName}`)
+        console.log('at indice...', activePorts.findIndex(elem => elem == vp))
+        activePorts.splice(activePorts.findIndex(elem => elem == vp), 1)
+        console.log(activePorts)
       }
-      // implement rx
-      parser.on('data', (buf) => {
-        let decoded = COBS.decode(buf)
-        //if(decoded[0] == 77) console.log('rx 77', decoded[1])
-        if (LOGSERRX) {
-          console.log('SERPORT Rx')
-          PK.logPacket(decoded)
-        }
-        // 1st byte is count of how many acks this loop, 
-        rcrxb += decoded[0] 
-        //console.log('rcrxb', rcrxb)
-        // hotswitch low level escapes 
-        if(decoded[2] == PK.LLESCAPE.KEY){
-          let str = TS.read('string', decoded, 2, true).value
-          console.log('LL:', str)
-        } else {
-          if(decoded.length > 1) serVPort.receive(decoded.slice(1))
-        }
-      })
-      // implement tx
-      serVPort.send = (buffer) => {
-        rcrxb -= 1 
-        //console.log('rcrxb', rcrxb)
-        port.write(COBS.encode(buffer))
-        if (LOGSERTX) {
-          console.log('SERPORT Tx')
-          PK.logPacket(buffer)
-        }
-      }
-      // phy handle to close,
-      serVPort.requestClose = () => {
-        console.log(`CLOSING #${pcount}`)
-        status = "closing"
-        port.close(() => { // await close callback, add 1s buffer
-          console.log(`SERPORT #${pcount} closed`)
-          status = "closed"
-        })
-      }
-    }) // end on-open
-    port.on('error', (err) => {
-      status = "closing"
-      console.log(`SERPORT #${pcount} ERR`, err)
-      port.close(() => { // await close callback, add 1s buffer
-        console.log(`SERPORT #${pcount} CLOSED`)
-        status = "closed"
-      })
-    })
-    port.on('close', (evt) => {
-      console.log('FERME LA')
-      status = "closing"
-      console.log(`SERPORT #${pcount} closed`)
-    })
-  }).catch((err) => {
-    if (LOGSER) console.log(`SERPORT cannot find device at ${pid}`, err)
-    status = "closed"
+    }
+    // set a timeout, 
+    setTimeout(portSweeper, 500)
   })
-} // end start serial
-
-// SAMD21 Gemma M0 is 801C, D51 Feather M4 is 8031 
-let portSearchID = '801C'
-
-startSerialPort(portSearchID)
-
-serVPort.requestOpen = () => {
-  startSerialPort(portSearchID)
 }
+
+portSweeper()
+
+// demo vport...
+
+/*
+// test endpoint, lives at indice #2 
+let ep2 = osap.endpoint("localTestEP")
+// we can attach 'onData' handlers, which fire whenever something is tx'd to us: 
+ep2.onData = (buffer) => {
+  return new Promise((resolve, reject) => {
+    try {
+      // data isn't typed: these are a 'typedarray' (a native javascript type / class, which is memory-competent)
+      console.log('the buffer', buffer)
+    } catch (err) {
+      console.error(err)
+    }
+    resolve()
+  })
+}
+
+//ep2.addRoute(PK.route().sib(2).pfwd().sib(2).end())
+*/

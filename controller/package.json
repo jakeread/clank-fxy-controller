@@ -15,8 +15,7 @@
   "dependencies": {
     "esm": "^3.2.25",
     "express": "^4.17.1",
-    "serialport": "^8.0.7",
+    "serialport": "^10.4.0",
     "ws": "^7.2.1"
-  },
-  "devDependencies": {}
+  }
 }

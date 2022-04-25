@@ -13,8 +13,8 @@ no warranty is provided, and users accept all liability.
 */
 
 import { PK, TS, VT, EP, TIMES } from '../../osapjs/core/ts.js'
-import MotionVM from './motionVirtualMachine.js'
-import MotorVM from './motorVirtualMachine.js'
+import MotionVM from '../../osapjs/vms/motionVirtualMachine.js'
+import MotorVM from '../../osapjs/vms/motorVirtualMachine.js'
 
 /* cz-head
 0: serialport 
