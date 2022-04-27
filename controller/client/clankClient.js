@@ -70,6 +70,10 @@ let HotendVM = new TempVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bf
 
 let HotendLoadVM = new LoadVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(13).end())
 
+// -------------------------------------------------------- Filament Sensor 
+
+//let FilSenseVM = new FilamentSensorVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(16).end())
+let FilSenseVM = new FilamentSensorVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().end())
 
 // -------------------------------------------------------- setup routine
 
@@ -130,7 +134,7 @@ v24Btn.onClick(async () => {
 // startup w/ this loop; 
 // comment this line out if you don't want the keepalive to bother you while you try 
 // hardware-less code stuff 
-powerTimer = setTimeout(checkPowerStates, 1000)
+// powerTimer = setTimeout(checkPowerStates, 1000)
 
 // -------------------------------------------------------- setup routine
 
@@ -403,13 +407,28 @@ brb.onClick(() => {
 })
 */
 
-// filament sensor, 
+// init w/ 5v power,
+setTimeout(() => {
+  // vm.motion.setPowerStates(true, false)
+}, 500)
 
-//let filSense = new FilamentSensorVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().sib(1).bfwd(16).end())
-let filSense = new FilamentSensorVM(osap, PK.route().sib(0).pfwd().sib(1).pfwd().end())
-
-let tstBtn = new EZButton(550, 550, 84, 84, 'test fil hall')
+let tstBtn = new EZButton(550, 550, 84, 84, 'test !')
 tstBtn.onClick(() => {
+  FilSenseVM.getHallReading().then((data) => {
+    console.warn('fil sense reading', data)
+    tstBtn.good()
+  }).catch((err) => {
+    console.error(err)
+    tstBtn.bad() 
+  })
+  return;
+  HotendLoadVM.getReading().then((data) => {
+    console.warn('load reading...', data)
+  }).catch((err) => {
+    console.error(err)
+  })
+  tstBtn.good()
+  /*
   filSense.getHallReading().then((reading) => {
     console.warn(reading)
     tstBtn.good()
@@ -417,6 +436,7 @@ tstBtn.onClick(() => {
     console.error(err)
     tstBtn.bad()
   })
+  */
 })
 
 // ------------------------------------ Init the WSC Port 

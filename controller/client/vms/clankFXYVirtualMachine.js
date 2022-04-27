@@ -78,6 +78,7 @@ export default function ClankVM(osap) {
   // however, this is measured & calibrated: 830 was extruding 75mm for a 50mm request 
 
   this.motors = {
+    /*
     X: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(1).end()),
     YL: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(2).end()),
     YR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(3).end()),
@@ -85,9 +86,11 @@ export default function ClankVM(osap) {
     ZLR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(5).end()),
     ZRF: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(6).end()),
     ZRR: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(7).end()),
+    */
     E: new MotorVM(osap, PK.route(headRoute).sib(1).bfwd(11).end())
   }
 
+  /*
   // .settings() just preps for the .init() or whatever other call, 
   this.motors.X.settings({
     axisPick: 0,
@@ -162,6 +165,7 @@ export default function ClankVM(osap) {
     homeRate: 20,
     homeOffset: 5
   })
+  */
 
   this.motors.E.settings({
     axisPick: 3,
