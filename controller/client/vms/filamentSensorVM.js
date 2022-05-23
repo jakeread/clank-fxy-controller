@@ -16,12 +16,20 @@ import { PK, TS } from '../../osapjs/core/ts.js'
 
 export default function FilamentSensorVM(osap, route) {
 
-  let hallQuery = osap.query(PK.route(route).sib(2).end())
-  this.getHallReading = () => {
+  let query = osap.query(PK.route(route).sib(2).end())
+  this.getReadings = () => {
     return new Promise((resolve, reject) => {
-      hallQuery.pull().then((data) => {
-        let reading = TS.read('float32', data, 0, true)
-        resolve (reading) 
+      query.pull().then((data) => {
+        let diameter = TS.read('float32', data, 0, true)
+        let posn = TS.read('float32', data, 4, true)
+        let rate = TS.read('float32', data, 8, true)
+        let count = TS.read('float32', data, 12, true)
+        resolve ({
+          diameter: diameter, 
+          position: posn,
+          rate: rate,
+          integral: count
+        }) 
       }).catch((err) => { reject(err) })
     })
   }

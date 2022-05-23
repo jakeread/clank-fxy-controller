@@ -1,3 +1,0 @@
-[submodule "controller/osapjs"]
-	path = controller/osapjs
-	url = ssh://git@gitlab.cba.mit.edu:846/jakeread/osapjs.git

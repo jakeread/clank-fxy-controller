@@ -414,7 +414,7 @@ setTimeout(() => {
 
 let tstBtn = new EZButton(550, 550, 84, 84, 'test !')
 tstBtn.onClick(() => {
-  FilSenseVM.getHallReading().then((data) => {
+  FilSenseVM.getReadings().then((data) => {
     console.warn('fil sense reading', data)
     tstBtn.good()
   }).catch((err) => {
