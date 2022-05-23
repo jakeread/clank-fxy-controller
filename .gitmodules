@@ -1,0 +1,3 @@
+[submodule "controller/osapjs"]
+	path = controller/osapjs
+	url = https://github.com/jakeread/osapjs.git
